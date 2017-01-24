@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 19-Jan-2017 13:49:11
+% Last Modified by GUIDE v2.5 23-Jan-2017 20:14:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -91,44 +91,104 @@ function selectExpBtn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% Let user select the stack
-[files, path, ~] = uigetfile('.ima', ...
-                             'Select Stack', ...
-                             'MultiSelect', 'On');
-files = sort(files);
+% Let user select the experiment (directory)
+path = uigetdir();
+
 % Store path and files for fast access
 [storePath, ~, ~] = fileparts(mfilename('fullpath'));
-save(fullfile(storePath, handles.lastStackFile), 'path', 'files');
+save(fullfile(storePath, handles.lastStackFile), 'path');
 
 % Open and read the stack
-handles = openStack(handles, path, files);
+handles = openExperiment(handles, path);
 
 guidata(hObject, handles);
 
 
 % --- Open and read the stack.
-function handles = openStack(handles, path, files)
-len = length(files);
+function handles = openExperiment(handles, path)
 
-% Read the first image and use it as template to preallocate the stack
-idx = 1;
-fil = char(fullfile(path, files(idx)));
-if exist(fil, 'file') == 0
-    msgbox(strcat({'The file:' fil 'is no longer available!'}));
+if exist(path, 'dir') == 0
+    msgbox(strcat({'The experiment:' path 'is no longer available!'}));
     return
 end
+
+list = dir(path);
+
+% Remove directories
+list([list.isdir]) = [];
+
+% Sort based on file name (filed 1)
+flds = fieldnames(list);
+tmp = struct2cell(list);
+sz = size(tmp);
+tmp = reshape(tmp, sz(1), [])';
+tmp = sortrows(tmp, 1);
+tmp = reshape(tmp', sz);
+list = cell2struct(tmp, flds, 1);
+
+% Extract the stack and slice number from each file and store in structure
+rex = '^(.*?\.)(\d{4})\.(\d{4})\.(.*)$';
+stackMin = inf;
+stackMax = -inf;
+sliceMin = inf;
+sliceMax = -inf;
+oldStack = inf;
+stackNum = 0;
+ex = struct();
+for i = 1:length(list)
+    tk = regexp(list(i).name, rex, 'tokens');
+    if ~isempty(tk)
+        stack = str2double(tk{1, 1}{1, 2});
+        if stack < stackMin
+            stackMin = stack;
+        end
+        if stack > stackMax
+            stackMax = stack;
+        end
+        slice = str2double(tk{1, 1}{1, 3});
+        if slice < sliceMin
+            sliceMin = slice;
+        end
+        if slice > sliceMax
+            sliceMax = slice;
+        end
+        if stack ~= oldStack
+            stackNum = stackNum + 1;
+            ex(stackNum).files = list(i);
+            ex(stackNum).stack = stack;
+            oldStack = stack;
+        else
+            ex(stackNum).files = [ex(stackNum).files list(i)];
+            ex(stackNum).slices = slice;
+        end
+    end
+end
+
+% Drop the stacks with less than max number of slices?  
+ex([ex.slices] < sliceMax) = [];
+stackNum = length(ex);
+handles.stackNum = stackNum;
+handles.stackList = [ex.stack];
+handles.sliceNum = sliceMax;
+
+% Read the first image and use it as template to preallocate the stack
+stackIdx = 1;
+sliceIdx = 1;
+fil = char(fullfile(path, ex(stackIdx).files(sliceIdx).name));
 img1 = dicomread(fil);
-img = zeros([size(img1), len]);
-img(:, :, idx) = img1;
+img = zeros([size(img1), stackNum, sliceMax]);
+img(:, :, stackIdx, sliceIdx) = img1;
 
 % Load and store the stack
-for i = idx + 1 : len
-    fil = char(fullfile(path, files(i)));
-    if exist(fil, 'file') == 0
-        msgbox(strcat({'The file:' fil 'is no longer available!'}));
-        return
+for st = 1 : stackNum
+    for sl = 2 : sliceMax
+        fil = char(fullfile(path, ex(st).files(sl).name));
+        if exist(fil, 'file') == 0
+            msgbox(strcat({'The file:' fil 'is no longer available!'}));
+            return
+        end
+        img(:, :, st, sl) = dicomread(fil);
     end
-    img(:, :, i) = dicomread(fil);
 end
 
 % Store original stack
@@ -137,28 +197,74 @@ handles.stackOrig = img;
 % Evaluate stack range
 imgMin = min(img(:));
 imgMax = max(img(:));
+clims = [imgMin, imgMax];
+handles.stackCLims = clims;
 
 % Normalize stack to [0, 1]
 % img = (img - imgMin) / (imgMax - imgMin);
-
-% Evaluate value range and display image
-clims = [imgMin, imgMax];
-axes(handles.mainAx);
-handles.img = imagesc(img(:, :, idx), clims);
-
-% Store data
-handles.stackPath = path;
-handles.stackFiles = files;
-handles.stackSize = len;
-handles.stackIdx = idx;
 handles.stackImg = img;
-handles.stackCLims = clims;
+
+% Display image
+axes(handles.mainAx);
+handles.img = imagesc(img1, clims);
+handles.stackIdx = stackIdx;
+handles.sliceIdx = sliceIdx;
+
+% Zero the sliders
+set(handles.stackSlider, 'Value', 0);
+set(handles.sliceSlider, 'Value', 0);
 
 % Update display
 handles = updateGui(handles);
 
+
 % --- Executes on slider movement.
-function stackSlider_Callback(hObject, eventdata, handles)
+function sliceSlider_Callback(hObject, eventdata, handles)
+% hObject    handle to sliceSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+handles = guidata(hObject);
+
+% Update image when user use the slider
+dx = 1.0 / (handles.sliceNum - 1);
+idx = 1 + floor(get(hObject, 'Value') / dx);
+if idx ~= handles.sliceIdx
+    handles.sliceIdx = idx;
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, idx));    
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function sliceSlider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to sliceSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+handles = guidata(hObject);
+
+% Create listener for real time update with slider
+handles.sliceSliderListener = addlistener(hObject, ...
+                                          'ContinuousValueChange', ...
+                                          @(hObject, eventdata) sliceSlider_Callback(hObject, eventdata));
+
+guidata(hObject, handles);
+
+
+% --- Executes on slider movement.
+function stackSlider_Callback(hObject, ~, handles)
 % hObject    handle to stackSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -168,21 +274,21 @@ function stackSlider_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Update image when user use the slider
-dx = 1.0 / (handles.stackSize - 1);
+dx = 1.0 / (handles.stackNum - 1);
 idx = 1 + floor(get(hObject, 'Value') / dx);
 if idx ~= handles.stackIdx
     handles.stackIdx = idx;
-    set(handles.img, 'CData', handles.stackImg(:, :, idx));    
+    set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.sliceIdx));    
 
     % Update display
-    updateGui(handles);
+    handles = updateGui(handles);
 
     guidata(hObject, handles);
 end
 
 
 % --- Executes during object creation, after setting all properties.
-function stackSlider_CreateFcn(hObject, eventdata, handles)
+function stackSlider_CreateFcn(hObject, eventdata, ~)
 % hObject    handle to stackSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -195,9 +301,9 @@ end
 handles = guidata(hObject);
 
 % Create listener for real time update with slider
-handles.sliderListener = addlistener(hObject, ...
-                                     'ContinuousValueChange', ...
-                                     @(hObject, eventdata) stackSlider_Callback(hObject, eventdata));
+handles.stackSliderListener = addlistener(hObject, ...
+                                          'ContinuousValueChange', ...
+                                          @(hObject, eventdata) stackSlider_Callback(hObject, eventdata));
 
 guidata(hObject, handles);
 
@@ -244,9 +350,9 @@ function loadLatest_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 [storePath, ~, ~] = fileparts(mfilename('fullpath'));
-load(fullfile(storePath, handles.lastStackFile), 'path', 'files');
+load(fullfile(storePath, handles.lastStackFile), 'path');
 
-handles = openStack(handles, path, files);
+handles = openExperiment(handles, path);
 
 guidata(hObject, handles);
 
@@ -265,35 +371,25 @@ guidata(hObject, handles);
 
 % --- Update GUI
 function handles = updateGui(handles)
+handles = updateTxtSliceIdx(handles);
 handles = updateTxtStackIdx(handles);
 
+
 % --- Update index indicator
+function handles = updateTxtSliceIdx(handles)
+txt = strcat('sl:', ...
+             num2str(handles.sliceIdx, '%03u'), ...
+             '/', ...
+             num2str(handles.sliceNum, '%03u'));
+% handles.txtSliceIdx = txt;
+set(handles.txtSliceIdx, 'String', txt);
+
+
+% --- Update time indicator
 function handles = updateTxtStackIdx(handles)
-txt = strcat('s: ', ...
+txt = strcat('st:', ...
              num2str(handles.stackIdx, '%03u'), ...
              '/', ...
-             num2str(handles.stackSize, '%03u'));
-% handles.txtStackIdx = txt;
+             num2str(handles.stackNum, '%03u'));
+% handles.txtSliceIdx = txt;
 set(handles.txtStackIdx, 'String', txt);
-
-
-% --- Executes on slider movement.
-function timeSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to timeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-
-% --- Executes during object creation, after setting all properties.
-function timeSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to timeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
