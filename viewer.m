@@ -56,7 +56,7 @@ function viewer_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % Initialize some "globals"
-handles.lastStackFile = 'lastStack.mat';
+handles.lastExpFile = 'lastExp.mat';
 
 % Update handles structure
 guidata(hObject, handles);
@@ -96,7 +96,7 @@ path = uigetdir();
 
 % Store path and files for fast access
 [storePath, ~, ~] = fileparts(mfilename('fullpath'));
-save(fullfile(storePath, handles.lastStackFile), 'path');
+save(fullfile(storePath, handles.lastExpFile), 'path');
 
 % Open and read the stack
 handles = openExperiment(handles, path);
@@ -104,7 +104,7 @@ handles = openExperiment(handles, path);
 guidata(hObject, handles);
 
 
-% --- Open and read the stack.
+% --- Open and read the stack files
 function handles = openExperiment(handles, path)
 
 if exist(path, 'dir') == 0
@@ -181,7 +181,7 @@ img(:, :, stackIdx, sliceIdx) = img1;
 
 % Load and store the stack
 for st = 1 : stackNum
-    for sl = 2 : sliceMax
+    for sl = 1 : sliceMax
         fil = char(fullfile(path, ex(st).files(sl).name));
         if exist(fil, 'file') == 0
             msgbox(strcat({'The file:' fil 'is no longer available!'}));
@@ -335,8 +335,8 @@ function runSlic_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-img = handles.stackImg(:, :, handles.stackIdx);
-[L, ~] = superpixels(img, 500, 'Compactness', 5);
+img = handles.stackImg(:, :, handles.stackIdx, handles.sliceIdx);
+[L, ~] = superpixels(img, 100, 'Compactness', 5);
 BW = boundarymask(L, 4);
 img(BW) = handles.stackCLims(2);
 set(handles.img, 'CData', img);    
@@ -350,7 +350,7 @@ function loadLatest_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 [storePath, ~, ~] = fileparts(mfilename('fullpath'));
-load(fullfile(storePath, handles.lastStackFile), 'path');
+load(fullfile(storePath, handles.lastExpFile), 'path');
 
 handles = openExperiment(handles, path);
 
@@ -364,7 +364,7 @@ function clear_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx));    
+set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, handles.sliceIdx));    
 
 guidata(hObject, handles);
 
