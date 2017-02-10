@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 23-Jan-2017 20:14:00
+% Last Modified by GUIDE v2.5 08-Feb-2017 18:49:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,12 +57,13 @@ handles.output = hObject;
 
 % Initialize some "globals"
 handles.lastExpFile = 'lastExp.mat';
+handles.onImage = false;
 
 % Update handles structure
 guidata(hObject, handles);
 
 % UIWAIT makes viewer wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+% uiwait(handles.mainGui);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -229,18 +230,23 @@ function sliceSlider_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Update image when user use the slider
-dx = 1.0 / (handles.sliceNum - 1);
-idx = 1 + floor(get(hObject, 'Value') / dx);
-if idx ~= handles.sliceIdx
-    handles.sliceIdx = idx;
-    set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, idx));    
+try
+    dx = 1.0 / (handles.sliceNum - 1);
+    idx = 1 + floor(get(hObject, 'Value') / dx);
+    if idx ~= handles.sliceIdx
+        handles.sliceIdx = idx;
+        set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, idx));    
 
-    % Update display
-    handles = updateGui(handles);
+        % Update array indexing
+        handles = updateIdx(handles);
 
-    guidata(hObject, handles);
+        % Update display
+        handles = updateGui(handles);
+
+        guidata(hObject, handles);
+    end
+catch ME
 end
-
 
 % --- Executes during object creation, after setting all properties.
 function sliceSlider_CreateFcn(hObject, eventdata, handles)
@@ -274,18 +280,23 @@ function stackSlider_Callback(hObject, ~, handles)
 handles = guidata(hObject);
 
 % Update image when user use the slider
-dx = 1.0 / (handles.stackNum - 1);
-idx = 1 + floor(get(hObject, 'Value') / dx);
-if idx ~= handles.stackIdx
-    handles.stackIdx = idx;
-    set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.sliceIdx));    
+try
+    dx = 1.0 / (handles.stackNum - 1);
+    idx = 1 + floor(get(hObject, 'Value') / dx);
+    if idx ~= handles.stackIdx
+        handles.stackIdx = idx;
+        set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.sliceIdx));    
 
-    % Update display
-    handles = updateGui(handles);
+        % Update array indexing
+        handles = updateIdx(handles);
+        
+        % Update display
+        handles = updateGui(handles);
 
-    guidata(hObject, handles);
+        guidata(hObject, handles);
+    end
+catch ME
 end
-
 
 % --- Executes during object creation, after setting all properties.
 function stackSlider_CreateFcn(hObject, eventdata, ~)
@@ -317,6 +328,8 @@ handles = guidata(hObject);
 
 assignin('base', 'stackOrig', handles.stackOrig);
 
+guidata(hObject, handles);
+
 
 % --- Executes on button press in exportCurrent2Ws.
 function exportCurrent2Ws_Callback(hObject, eventdata, handles)
@@ -326,6 +339,8 @@ function exportCurrent2Ws_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 assignin('base', 'stackCurr', handles.stackImg);
+
+guidata(hObject, handles);
 
 
 % --- Executes on button press in runSlic.
@@ -340,6 +355,8 @@ img = handles.stackImg(:, :, handles.stackIdx, handles.sliceIdx);
 BW = boundarymask(L, 4);
 img(BW) = handles.stackCLims(2);
 set(handles.img, 'CData', img);    
+
+guidata(hObject, handles);
 
 
 % --- Executes on button press in loadLatest.
@@ -369,27 +386,125 @@ set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, handles.slice
 guidata(hObject, handles);
 
 
+% --- Executes on mouse motion over figure - except title and menu.
+function mainGui_WindowButtonMotionFcn(hObject, eventdata, handles)
+% hObject    handle to mainGui (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Get location of mouse respect to application window
+pos = get(hObject, 'currentPoint');  % (0,0) is bottom-left
+pX = pos(1);
+pY = pos(2);
+
+% Get information about location and size of axes
+maLoc = get(handles.mainAx, 'Position');
+maL = maLoc(1);
+maB = maLoc(2);
+maW = maLoc(3);
+maH = maLoc(4);
+
+handles.onImage = false;
+
+% Check if within image limits
+if pX >= maL && pY >= maB
+    maX = pX - maL;
+    maY = pY - maB;
+    if maX <= maW && maY <= maH
+        handles.onImage = true;
+        cPos = get(handles.mainAx, 'CurrentPoint');
+        handles.posIdx = round(cPos(1, 1:2));
+        handles = updateIdx(handles);  % Update array indexing
+        handles = updateGui(handles);  % Update display
+    end
+end
+
+guidata(hObject, handles);
+
+
+% --- Executes on mouse press over figure background, over a disabled or
+% --- inactive control, or over an axes background.
+function mainGui_WindowButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to mainGui (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+type = get(hObject,'SelectionType');
+switch type
+    case 'normal' % Left Single-Click
+        if handles.onImage
+            figure(1); 
+            hold all;
+            plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), :, handles.sliceIdx)));
+        end
+    case 'open' % Left Double-Click
+
+end
+
+guidata(hObject, handles);
+
+
+% --- Update array indexing
+function handles = updateIdx(handles)
+try
+    pos = [handles.posIdx(2), ...
+           handles.posIdx(1), ...
+           handles.stackIdx, ...
+           handles.sliceIdx];
+    handles.arrayIdx = num2cell(pos);
+catch ME
+end
+
+
 % --- Update GUI
 function handles = updateGui(handles)
 handles = updateTxtSliceIdx(handles);
 handles = updateTxtStackIdx(handles);
+handles = updateTxtPosIdx(handles);
 
 
 % --- Update index indicator
 function handles = updateTxtSliceIdx(handles)
-txt = strcat('sl:', ...
-             num2str(handles.sliceIdx, '%03u'), ...
-             '/', ...
-             num2str(handles.sliceNum, '%03u'));
-% handles.txtSliceIdx = txt;
-set(handles.txtSliceIdx, 'String', txt);
+try
+    txt = strcat('sl:', ...
+                 num2str(handles.sliceIdx, '%03u'), ...
+                 '/', ...
+                 num2str(handles.sliceNum, '%03u'));
+
+    set(handles.txtSliceIdx, 'String', txt);
+catch ME
+end
 
 
 % --- Update time indicator
 function handles = updateTxtStackIdx(handles)
-txt = strcat('st:', ...
-             num2str(handles.stackIdx, '%03u'), ...
-             '/', ...
-             num2str(handles.stackNum, '%03u'));
-% handles.txtSliceIdx = txt;
-set(handles.txtStackIdx, 'String', txt);
+try
+    txt = strcat('st:', ...
+                 num2str(handles.stackIdx, '%03u'), ...
+                 '/', ...
+                 num2str(handles.stackNum, '%03u'));
+
+    set(handles.txtStackIdx, 'String', txt);
+catch ME
+end
+
+
+% --- Update position indicator
+function handles = updateTxtPosIdx(handles)
+try
+    txt = strcat('(', ...
+                 num2str(handles.posIdx(1), '%03u'), ...
+                 ',', ...
+                 num2str(handles.posIdx(2), '%03u'), ...
+                 ',', ...
+                 num2str(handles.stackIdx, '%03u'), ...
+                 ',', ...
+                 num2str(handles.sliceIdx, '%03u'), ...
+                 ')-', ...
+                 num2str(handles.stackOrig(handles.arrayIdx{:}), '%04u'));
+             
+     set(handles.txtPosIdx, 'String', txt);
+catch ME
+end
