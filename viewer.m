@@ -92,30 +92,10 @@ function viewer_ClosingFcn(hObject, eventdata, handles)
 delete(hObject);
 
 
-% --- Executes on button press in selectExpBtn.
-function selectExpBtn_Callback(hObject, eventdata, handles)
-% hObject    handle to selectExpBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-% Let user select the experiment (directory)
-path = uigetdir();
-
-% Store path and files for fast access
-[storePath, ~, ~] = fileparts(mfilename('fullpath'));
-save(fullfile(storePath, handles.lastExpFile), 'path');
-
-% Open and read the stack
-handles = openExperiment(handles, path);
-
-guidata(hObject, handles);
-
-
 
 function handles = configStack(handles)
 img = handles.stackOrig;
-[~, ~, handles.stackNum, handles.sliceNum] = size(img);
+[~, ~, handles.sliceNum, handles.stackNum] = size(img);
 
 % Evaluate stack range
 imgMin = min(img(:));
@@ -130,8 +110,8 @@ handles.stackImg = img;
 % Display image
 axes(handles.mainAx);
 handles.img = imagesc(img(:, :, 1, 1), clims);
-handles.stackIdx = 1;
 handles.sliceIdx = 1;
+handles.stackIdx = 1;
 
 % Zero the sliders
 set(handles.stackSlider, 'Value', 0);
@@ -156,7 +136,7 @@ dx = 1.0 / (handles.sliceNum - 1);
 idx = 1 + floor(get(hObject, 'Value') / dx);
 if idx ~= handles.sliceIdx
     handles.sliceIdx = idx;
-    set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, idx));    
+    set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.stackIdx));    
 
     % Update display
     handles = updateGui(handles);
@@ -201,7 +181,7 @@ dx = 1.0 / (handles.stackNum - 1);
 idx = 1 + floor(get(hObject, 'Value') / dx);
 if idx ~= handles.stackIdx
     handles.stackIdx = idx;
-    set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.sliceIdx));    
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, idx));    
 
     % Update display
     handles = updateGui(handles);
@@ -269,36 +249,13 @@ end
 guidata(hObject, handles);
 
 
-% --- Executes on mouse press over figure background, over a disabled or
-% --- inactive control, or over an axes background.
-function mainGui_WindowButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to mainGui (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-type = get(hObject,'SelectionType');
-switch type
-    case 'normal' % Left Single-Click
-        if handles.onImage
-            figure(1); 
-            hold all;
-            plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), :, handles.sliceIdx)));
-        end
-    case 'open' % Left Double-Click
-
-end
-
-guidata(hObject, handles);
-
-
 % --- Update array indexing
 function handles = updateIdx(handles)
 try
     pos = [handles.posIdx(2), ...
            handles.posIdx(1), ...
-           handles.stackIdx, ...
-           handles.sliceIdx];
+           handles.sliceIdx, ...
+           handles.stackIdx];
     handles.arrayIdx = num2cell(pos);
 catch ME
 end
@@ -345,9 +302,9 @@ try
                  ',', ...
                  num2str(handles.posIdx(2), '%03u'), ...
                  ',', ...
-                 num2str(handles.stackIdx, '%03u'), ...
-                 ',', ...
                  num2str(handles.sliceIdx, '%03u'), ...
+                 ',', ...
+                 num2str(handles.stackIdx, '%03u'), ...
                  ')-', ...
                  num2str(handles.stackOrig(handles.arrayIdx{:}), '%04u'));
              
