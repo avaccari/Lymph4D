@@ -55,12 +55,17 @@ function viewer_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for viewer
 handles.output = hObject;
 
+% Check if data was passed
+if nargin > 3
+    handles.stackOrig = varargin{1};
+    
+    % Configure the stack for visualization
+    handles = configStack(handles);
+end
+
 % Initialize some "globals"
 handles.lastExpFile = 'lastExp.mat';
 handles.onImage = false;
-
-% If experiment was passed use it as data
-if 
 
 % Update handles structure
 guidata(hObject, handles);
@@ -171,9 +176,7 @@ end
 % Drop the stacks with less than max number of slices?  
 ex([ex.slices] < sliceMax) = [];
 stackNum = length(ex);
-handles.stackNum = stackNum;
 handles.stackList = [ex.stack];
-handles.sliceNum = sliceMax;
 
 % Read the first image and use it as template to preallocate the stack
 stackIdx = 1;
@@ -198,6 +201,20 @@ end
 % Store original stack
 handles.stackOrig = img;
 
+% Configure the stack for visualization
+handles = configStack(handles);
+
+
+
+
+
+
+
+
+function handles = configStack(handles)
+img = handles.stackOrig;
+[~, ~, handles.stackNum, handles.sliceNum] = size(img);
+
 % Evaluate stack range
 imgMin = min(img(:));
 imgMax = max(img(:));
@@ -210,9 +227,9 @@ handles.stackImg = img;
 
 % Display image
 axes(handles.mainAx);
-handles.img = imagesc(img1, clims);
-handles.stackIdx = stackIdx;
-handles.sliceIdx = sliceIdx;
+handles.img = imagesc(img(:, :, 1, 1), clims);
+handles.stackIdx = 1;
+handles.sliceIdx = 1;
 
 % Zero the sliders
 set(handles.stackSlider, 'Value', 0);
