@@ -59,6 +59,9 @@ handles.output = hObject;
 handles.lastExpFile = 'lastExp.mat';
 handles.onImage = false;
 
+% If experiment was passed use it as data
+if 
+
 % Update handles structure
 guidata(hObject, handles);
 
