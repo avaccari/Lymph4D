@@ -183,8 +183,8 @@ stackIdx = 1;
 sliceIdx = 1;
 fil = char(fullfile(path, ex(stackIdx).files(sliceIdx).name));
 img1 = dicomread(fil);
-img = zeros([size(img1), stackNum, sliceMax]);
-img(:, :, stackIdx, sliceIdx) = img1;
+img = zeros([size(img1), sliceMax, stackNum]);
+img(:, :, sliceIdx, stackIdx) = img1;
 
 % Load and store the stack
 for st = 1 : stackNum
@@ -194,7 +194,7 @@ for st = 1 : stackNum
             msgbox(strcat({'The file:' fil 'is no longer available!'}));
             return
         end
-        img(:, :, st, sl) = dicomread(fil);
+        img(:, :, sl, st) = dicomread(fil);
     end
 end
 
@@ -213,7 +213,7 @@ handles = configStack(handles);
 
 function handles = configStack(handles)
 img = handles.stackOrig;
-[~, ~, handles.stackNum, handles.sliceNum] = size(img);
+[~, ~, handles.sliceNum, handles.stackNum] = size(img);
 
 % Evaluate stack range
 imgMin = min(img(:));
@@ -255,7 +255,7 @@ try
     idx = 1 + floor(get(hObject, 'Value') / dx);
     if idx ~= handles.sliceIdx
         handles.sliceIdx = idx;
-        set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, idx));    
+        set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.stackIdx));    
 
         % Update array indexing
         handles = updateIdx(handles);
@@ -305,7 +305,7 @@ try
     idx = 1 + floor(get(hObject, 'Value') / dx);
     if idx ~= handles.stackIdx
         handles.stackIdx = idx;
-        set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.sliceIdx));    
+        set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, idx));    
 
         % Update array indexing
         handles = updateIdx(handles);
@@ -370,7 +370,7 @@ function runSlic_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-img = handles.stackImg(:, :, handles.stackIdx, handles.sliceIdx);
+img = handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx);
 [L, ~] = superpixels(img, 100, 'Compactness', 5);
 BW = boundarymask(L, 4);
 img(BW) = handles.stackCLims(2);
@@ -401,7 +401,7 @@ function clear_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, handles.sliceIdx));    
+set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));    
 
 guidata(hObject, handles);
 
@@ -457,7 +457,7 @@ switch type
         if handles.onImage
             figure(1); 
             hold all;
-            plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), :, handles.sliceIdx)));
+            plot(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), handles.sliceIdx, :));
         end
     case 'open' % Left Double-Click
 
@@ -471,8 +471,8 @@ function handles = updateIdx(handles)
 try
     pos = [handles.posIdx(2), ...
            handles.posIdx(1), ...
-           handles.stackIdx, ...
-           handles.sliceIdx];
+           handles.sliceIdx, ...
+           handles.stackIdx];
     handles.arrayIdx = num2cell(pos);
 catch ME
 end
@@ -519,9 +519,9 @@ try
                  ',', ...
                  num2str(handles.posIdx(2), '%03u'), ...
                  ',', ...
-                 num2str(handles.stackIdx, '%03u'), ...
-                 ',', ...
                  num2str(handles.sliceIdx, '%03u'), ...
+                 ',', ...
+                 num2str(handles.stackIdx, '%03u'), ...
                  ')-', ...
                  num2str(handles.stackOrig(handles.arrayIdx{:}), '%04u'));
              
