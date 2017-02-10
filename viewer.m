@@ -55,6 +55,14 @@ function viewer_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for viewer
 handles.output = hObject;
 
+% Check if data was passed
+if nargin > 3
+    handles.stackOrig = varargin{1};
+    
+    % Configure the stack for visualization
+    handles = configStack(handles);
+end
+
 % Initialize some "globals"
 handles.lastExpFile = 'lastExp.mat';
 
@@ -167,9 +175,7 @@ end
 % Drop the stacks with less than max number of slices?  
 ex([ex.slices] < sliceMax) = [];
 stackNum = length(ex);
-handles.stackNum = stackNum;
 handles.stackList = [ex.stack];
-handles.sliceNum = sliceMax;
 
 % Read the first image and use it as template to preallocate the stack
 stackIdx = 1;
@@ -194,6 +200,20 @@ end
 % Store original stack
 handles.stackOrig = img;
 
+% Configure the stack for visualization
+handles = configStack(handles);
+
+
+
+
+
+
+
+
+function handles = configStack(handles)
+img = handles.stackOrig;
+[~, ~, handles.stackNum, handles.sliceNum] = size(img);
+
 % Evaluate stack range
 imgMin = min(img(:));
 imgMax = max(img(:));
@@ -206,9 +226,9 @@ handles.stackImg = img;
 
 % Display image
 axes(handles.mainAx);
-handles.img = imagesc(img1, clims);
-handles.stackIdx = stackIdx;
-handles.sliceIdx = sliceIdx;
+handles.img = imagesc(img(:, :, 1, 1), clims);
+handles.stackIdx = 1;
+handles.sliceIdx = 1;
 
 % Zero the sliders
 set(handles.stackSlider, 'Value', 0);
@@ -328,20 +348,6 @@ handles = guidata(hObject);
 assignin('base', 'stackCurr', handles.stackImg);
 
 
-% --- Executes on button press in runSlic.
-function runSlic_Callback(hObject, eventdata, handles)
-% hObject    handle to runSlic (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-img = handles.stackImg(:, :, handles.stackIdx, handles.sliceIdx);
-[L, ~] = superpixels(img, 100, 'Compactness', 5);
-BW = boundarymask(L, 4);
-img(BW) = handles.stackCLims(2);
-set(handles.img, 'CData', img);    
-
-
 % --- Executes on button press in loadLatest.
 function loadLatest_Callback(hObject, eventdata, handles)
 % hObject    handle to loadLatest (see GCBO)
@@ -356,17 +362,6 @@ handles = openExperiment(handles, path);
 
 guidata(hObject, handles);
 
-
-% --- Executes on button press in clear.
-function clear_Callback(hObject, eventdata, handles)
-% hObject    handle to clear (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-set(handles.img, 'CData', handles.stackImg(:, :, handles.stackIdx, handles.sliceIdx));    
-
-guidata(hObject, handles);
 
 
 % --- Update GUI
