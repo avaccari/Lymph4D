@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 12-Feb-2017 19:50:59
+% Last Modified by GUIDE v2.5 12-Feb-2017 20:36:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -452,9 +452,16 @@ function clear_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));    
+try
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));    
+catch ME
+end
 
 guidata(hObject, handles);
+
+
+
+
 
 
 % --- Executes on mouse motion over figure - except title and menu.
@@ -502,8 +509,22 @@ function mainGui_WindowButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-type = get(hObject,'SelectionType');
-switch type
+% Grab the type of mouse button event
+handles.buttonType = get(hObject,'SelectionType');
+
+guidata(hObject, handles);
+
+
+
+% --- Executes on mouse press over figure background, over a disabled or
+% --- inactive control, or over an axes background.
+function mainGui_WindowButtonUpFcn(hObject, eventdata, handles)
+% hObject    handle to mainGui (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+switch handles.buttonType
     case 'normal' % Left Single-Click
         if handles.onImage
             figure(1); 
@@ -511,10 +532,14 @@ switch type
             plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), handles.sliceIdx, :)));
         end
     case 'open' % Left Double-Click
-
 end
 
 guidata(hObject, handles);
+
+
+
+
+
 
 
 % --- Update array indexing
@@ -579,3 +604,5 @@ try
      set(handles.txtPosIdx, 'String', txt);
 catch ME
 end
+
+
