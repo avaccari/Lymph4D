@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 08-Feb-2017 18:49:55
+% Last Modified by GUIDE v2.5 12-Feb-2017 19:50:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -186,6 +186,9 @@ img1 = dicomread(fil);
 img = zeros([size(img1), sliceMax, stackNum]);
 img(:, :, sliceIdx, stackIdx) = img1;
 
+% Read the structure containing the file info (only the first file)
+handles.expInfo = dicominfo(fil);
+
 % Load and store the stack
 for st = 1 : stackNum
     for sl = 1 : sliceMax
@@ -346,7 +349,16 @@ function exportOrig2Ws_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-assignin('base', 'stackOrig', handles.stackOrig);
+name = 'Original';
+if isfield(handles, 'expInfo') == 1
+    if isfield(handles.expInfo, 'SeriesDescription') == 1
+        expInfo = regexprep(handles.expInfo.SeriesDescription, '( |-)+', '_');
+        expInfo = regexprep(expInfo, '_+', '_');
+        name = strcat('Orig_', expInfo);
+    end
+end
+
+assignin('base', name, handles.stackOrig);
 
 guidata(hObject, handles);
 
@@ -358,25 +370,19 @@ function exportCurrent2Ws_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-assignin('base', 'stackCurr', handles.stackImg);
+name = 'Current';
+if isfield(handles, 'expInfo') == 1
+    if isfield(handles.expInfo, 'SeriesDescription') == 1
+        expInfo = regexprep(handles.expInfo.SeriesDescription, '( |-)+', '_');
+        expInfo = regexprep(expInfo, '_+', '_');
+        name = strcat('Curr_', expInfo);
+    end
+end
+
+assignin('base', name, handles.stackOrig);
 
 guidata(hObject, handles);
 
-
-% --- Executes on button press in runSlic.
-function runSlic_Callback(hObject, eventdata, handles)
-% hObject    handle to runSlic (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-img = handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx);
-[L, ~] = superpixels(img, 100, 'Compactness', 5);
-BW = boundarymask(L, 4);
-img(BW) = handles.stackCLims(2);
-set(handles.img, 'CData', img);    
-
-guidata(hObject, handles);
 
 
 % --- Executes on button press in loadLatest.
@@ -392,6 +398,51 @@ load(fullfile(storePath, handles.lastExpFile), 'path');
 handles = openExperiment(handles, path);
 
 guidata(hObject, handles);
+
+
+
+% --- Executes on button press in loadVariable.
+function loadVariable_Callback(hObject, eventdata, handles)
+% hObject    handle to loadVariable (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% If expInfo exists, clear it
+if isfield(handles, 'expInfo') == 1
+    handles = rmfield(handles, 'expInfo');
+end
+
+% Load the list of variables in the 'base' workspace
+list = evalin('base', 'whos');
+
+% Select only the variable of the right size
+list = list(cellfun('length', {list.size}) == 4);
+
+% Check if there is anything left
+if isempty(list) == 1
+    msgbox('There are not 4D variables in the workspace');
+    return
+end
+    
+% Ask user to pick the variable  
+[s, v] = listdlg('PromptString', 'Select a variable (x, y, z, t):', ...
+                 'SelectionMode', 'single', ...
+                 'ListString', {list.name});
+
+% If error, bail
+if v == 0
+    msgbox('There was an error during the selection process.');
+    return
+end
+
+% Load the variable and open it
+handles.stackOrig = evalin('base', list(s).name);
+
+handles = configStack(handles);
+
+guidata(hObject, handles);
+
 
 
 % --- Executes on button press in clear.
@@ -457,7 +508,7 @@ switch type
         if handles.onImage
             figure(1); 
             hold all;
-            plot(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), handles.sliceIdx, :));
+            plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), handles.sliceIdx, :)));
         end
     case 'open' % Left Double-Click
 
