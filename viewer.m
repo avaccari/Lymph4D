@@ -22,7 +22,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 12-Feb-2017 20:36:50
+% Last Modified by GUIDE v2.5 13-Feb-2017 12:44:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,6 +66,8 @@ end
 % Initialize some "globals"
 handles.lastExpFile = 'lastExp.mat';
 handles.onImage = false;
+handles.selection.mode = 'point';
+handles.drawing.active = false;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -110,136 +112,13 @@ save(fullfile(storePath, handles.lastExpFile), 'path');
 % Open and read the stack
 handles = openExperiment(handles, path);
 
-guidata(hObject, handles);
-
-
-% --- Open and read the stack files
-function handles = openExperiment(handles, path)
-
-if exist(path, 'dir') == 0
-    msgbox(strcat({'The experiment:' path 'is no longer available!'}));
-    return
-end
-
-list = dir(path);
-
-% Remove directories
-list([list.isdir]) = [];
-
-% Sort based on file name (filed 1)
-flds = fieldnames(list);
-tmp = struct2cell(list);
-sz = size(tmp);
-tmp = reshape(tmp, sz(1), [])';
-tmp = sortrows(tmp, 1);
-tmp = reshape(tmp', sz);
-list = cell2struct(tmp, flds, 1);
-
-% Extract the stack and slice number from each file and store in structure
-rex = '^(.*?\.)(\d{4})\.(\d{4})\.(.*)$';
-stackMin = inf;
-stackMax = -inf;
-sliceMin = inf;
-sliceMax = -inf;
-oldStack = inf;
-stackNum = 0;
-ex = struct();
-for i = 1:length(list)
-    tk = regexp(list(i).name, rex, 'tokens');
-    if ~isempty(tk)
-        stack = str2double(tk{1, 1}{1, 2});
-        if stack < stackMin
-            stackMin = stack;
-        end
-        if stack > stackMax
-            stackMax = stack;
-        end
-        slice = str2double(tk{1, 1}{1, 3});
-        if slice < sliceMin
-            sliceMin = slice;
-        end
-        if slice > sliceMax
-            sliceMax = slice;
-        end
-        if stack ~= oldStack
-            stackNum = stackNum + 1;
-            ex(stackNum).files = list(i);
-            ex(stackNum).stack = stack;
-            oldStack = stack;
-        else
-            ex(stackNum).files = [ex(stackNum).files list(i)];
-            ex(stackNum).slices = slice;
-        end
-    end
-end
-
-% Drop the stacks with less than max number of slices?  
-ex([ex.slices] < sliceMax) = [];
-stackNum = length(ex);
-handles.stackList = [ex.stack];
-
-% Read the first image and use it as template to preallocate the stack
-stackIdx = 1;
-sliceIdx = 1;
-fil = char(fullfile(path, ex(stackIdx).files(sliceIdx).name));
-img1 = dicomread(fil);
-img = zeros([size(img1), sliceMax, stackNum]);
-img(:, :, sliceIdx, stackIdx) = img1;
-
-% Read the structure containing the file info (only the first file)
-handles.expInfo = dicominfo(fil);
-
-% Load and store the stack
-for st = 1 : stackNum
-    for sl = 1 : sliceMax
-        fil = char(fullfile(path, ex(st).files(sl).name));
-        if exist(fil, 'file') == 0
-            msgbox(strcat({'The file:' fil 'is no longer available!'}));
-            return
-        end
-        img(:, :, sl, st) = dicomread(fil);
-    end
-end
-
-% Store original stack
-handles.stackOrig = img;
-
 % Configure the stack for visualization
 handles = configStack(handles);
 
-
-
-
-
-
-
-
-function handles = configStack(handles)
-img = handles.stackOrig;
-[~, ~, handles.sliceNum, handles.stackNum] = size(img);
-
-% Evaluate stack range
-imgMin = min(img(:));
-imgMax = max(img(:));
-clims = [imgMin, imgMax];
-handles.stackCLims = clims;
-
-% Normalize stack to [0, 1]
-% img = (img - imgMin) / (imgMax - imgMin);
-handles.stackImg = img;
-
-% Display image
-axes(handles.mainAx);
-handles.img = imagesc(img(:, :, 1, 1), clims);
-handles.stackIdx = 1;
-handles.sliceIdx = 1;
-
-% Zero the sliders
-set(handles.stackSlider, 'Value', 0);
-set(handles.sliceSlider, 'Value', 0);
-
 % Update display
 handles = updateGui(handles);
+
+guidata(hObject, handles);
 
 
 % --- Executes on slider movement.
@@ -349,13 +228,14 @@ function exportOrig2Ws_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
+if ~isfield(handles, 'stackOrig')
+    msgbox('There is no stack to export!');
+    return
+end
+
 name = 'Original';
-if isfield(handles, 'expInfo') == 1
-    if isfield(handles.expInfo, 'SeriesDescription') == 1
-        expInfo = regexprep(handles.expInfo.SeriesDescription, '( |-)+', '_');
-        expInfo = regexprep(expInfo, '_+', '_');
-        name = strcat('Orig_', expInfo);
-    end
+if isfield(handles, 'expInfo')
+    name = strcat('Orig_', handles.expInfo.expNameExp);
 end
 
 assignin('base', name, handles.stackOrig);
@@ -370,13 +250,14 @@ function exportCurrent2Ws_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
+if ~isfield(handles, 'stackOrig')
+    msgbox('There is no stack to export!');
+    return
+end
+
 name = 'Current';
-if isfield(handles, 'expInfo') == 1
-    if isfield(handles.expInfo, 'SeriesDescription') == 1
-        expInfo = regexprep(handles.expInfo.SeriesDescription, '( |-)+', '_');
-        expInfo = regexprep(expInfo, '_+', '_');
-        name = strcat('Curr_', expInfo);
-    end
+if isfield(handles, 'expInfo')
+    name = strcat('Curr_', handles.expInfo.expNameExp);
 end
 
 assignin('base', name, handles.stackOrig);
@@ -395,7 +276,14 @@ handles = guidata(hObject);
 [storePath, ~, ~] = fileparts(mfilename('fullpath'));
 load(fullfile(storePath, handles.lastExpFile), 'path');
 
+% Open and read the stack
 handles = openExperiment(handles, path);
+
+% Configure the stack for visualization
+handles = configStack(handles);
+
+% Update display
+handles = updateGui(handles);
 
 guidata(hObject, handles);
 
@@ -409,7 +297,7 @@ function loadVariable_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % If expInfo exists, clear it
-if isfield(handles, 'expInfo') == 1
+if isfield(handles, 'expInfo')
     handles = rmfield(handles, 'expInfo');
 end
 
@@ -439,7 +327,11 @@ end
 % Load the variable and open it
 handles.stackOrig = evalin('base', list(s).name);
 
+% Configure the stack for visualization
 handles = configStack(handles);
+
+% Update display
+handles = updateGui(handles);
 
 guidata(hObject, handles);
 
@@ -459,6 +351,61 @@ end
 
 guidata(hObject, handles);
 
+
+% --- Executes on button press in selPoint.
+function selPoint_Callback(hObject, eventdata, handles)
+% hObject    handle to selPoint (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of selPoint
+handles = guidata(hObject);
+    
+handles.selection.mode = 'point';
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in selLine.
+function selLine_Callback(hObject, eventdata, handles)
+% hObject    handle to selLine (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of selLine
+handles = guidata(hObject);
+    
+handles.selection.mode = 'line';
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in selRect.
+function selRect_Callback(hObject, eventdata, handles)
+% hObject    handle to selRect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of selRect
+handles = guidata(hObject);
+    
+handles.selection.mode = 'rectangle';
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in selCircle.
+function selCircle_Callback(hObject, eventdata, handles)
+% hObject    handle to selCircle (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of selCircle
+handles = guidata(hObject);
+    
+handles.selection.mode = 'circle';
+
+guidata(hObject, handles);
 
 
 
@@ -510,7 +457,7 @@ function mainGui_WindowButtonDownFcn(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Grab the type of mouse button event
-handles.buttonType = get(hObject,'SelectionType');
+handles.buttonType = get(hObject, 'SelectionType');
 
 guidata(hObject, handles);
 
@@ -524,22 +471,52 @@ function mainGui_WindowButtonUpFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-switch handles.buttonType
-    case 'normal' % Left Single-Click
-        if handles.onImage
-            figure(1); 
-            hold all;
-            plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), handles.sliceIdx, :)));
+switch handles.selection.mode
+    case 'point'
+        switch handles.buttonType
+            case 'normal' % Left Single-Click
+                if handles.onImage
+                    figure(1);
+                    hold all;
+                    plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), handles.sliceIdx, :)));
+                end
+            case 'open' % Left Double-Click
         end
-    case 'open' % Left Double-Click
+    case 'line'
+        switch handles.buttonType
+            case 'normal'
+                if handles.onImage
+                    if ~handles.drawing.active
+                        txt = {'Drag the ends of the line to select a cross', ...
+                               'section. The temporal evolution will be shown', ...
+                               'in real time in a popup figure.', ...
+                               'To remove the line, double click on it.'};
+                        msgbox(txt);
+                        handles.drawing.active = true;
+                        handles.drawing.line = imline(handles.mainAx, ...
+                                                      [handles.posIdx(1), handles.posIdx(1) + 10], ...
+                                                      [handles.posIdx(2), handles.posIdx(2) + 10]);
+                        handles.drawing.line.setColor('green');
+                        handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles));
+                    end
+                end
+            case 'open'
+                handles.drawing.active = false;
+                handles.drawing.line.delete();
+        end
+    case 'rectangle'
+        switch handles.buttonType
+            case 'normal'
+            case 'open'                
+        end
+    case 'circle'
+        switch handles.buttonType
+            case 'normal'
+            case 'open'                
+        end
 end
 
 guidata(hObject, handles);
-
-
-
-
-
 
 
 % --- Update array indexing
@@ -552,57 +529,3 @@ try
     handles.arrayIdx = num2cell(pos);
 catch ME
 end
-
-
-% --- Update GUI
-function handles = updateGui(handles)
-handles = updateTxtSliceIdx(handles);
-handles = updateTxtStackIdx(handles);
-handles = updateTxtPosIdx(handles);
-
-
-% --- Update index indicator
-function handles = updateTxtSliceIdx(handles)
-try
-    txt = strcat('sl:', ...
-                 num2str(handles.sliceIdx, '%03u'), ...
-                 '/', ...
-                 num2str(handles.sliceNum, '%03u'));
-
-    set(handles.txtSliceIdx, 'String', txt);
-catch ME
-end
-
-
-% --- Update time indicator
-function handles = updateTxtStackIdx(handles)
-try
-    txt = strcat('st:', ...
-                 num2str(handles.stackIdx, '%03u'), ...
-                 '/', ...
-                 num2str(handles.stackNum, '%03u'));
-
-    set(handles.txtStackIdx, 'String', txt);
-catch ME
-end
-
-
-% --- Update position indicator
-function handles = updateTxtPosIdx(handles)
-try
-    txt = strcat('(', ...
-                 num2str(handles.posIdx(1), '%03u'), ...
-                 ',', ...
-                 num2str(handles.posIdx(2), '%03u'), ...
-                 ',', ...
-                 num2str(handles.sliceIdx, '%03u'), ...
-                 ',', ...
-                 num2str(handles.stackIdx, '%03u'), ...
-                 ')-', ...
-                 num2str(handles.stackOrig(handles.arrayIdx{:}), '%04u'));
-             
-     set(handles.txtPosIdx, 'String', txt);
-catch ME
-end
-
-
