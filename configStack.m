@@ -1,3 +1,5 @@
+% Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
+
 % --- Configure the data from an experiment for visualization
 function handles = configStack(handles)
 

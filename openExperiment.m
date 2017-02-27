@@ -1,3 +1,5 @@
+% Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
+
 % --- Open and read the stack files
 function handles = openExperiment(handles, path)
 

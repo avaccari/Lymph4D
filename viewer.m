@@ -1,3 +1,5 @@
+% Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
+
 function varargout = viewer(varargin)
 % VIEWER MATLAB code for viewer.fig
 %      VIEWER, by itself, creates a new VIEWER or raises the existing
@@ -22,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 13-Feb-2017 12:44:35
+% Last Modified by GUIDE v2.5 27-Feb-2017 16:08:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -64,10 +66,31 @@ if nargin > 3
 end
 
 % Initialize some "globals"
-handles.lastExpFile = 'lastExp.mat';
+[handles.storePath, ~, ~] = fileparts(mfilename('fullpath'));
 handles.onImage = false;
 handles.selection.mode = 'point';
 handles.drawing.active = false;
+
+% Get unique id
+if ispc
+    [~, r] = system('wmic bios get serialnumber /value');
+    r = string(regexp(r, '.*=([0-9A-Z]*).*', 'tokens', 'once'));
+    handles.machineId = strcat(r, '-');
+elseif ismac
+    [~, r] = system('ioreg -l | grep "IOPlatformSerialNumber" | awk -F''"'' ''{print $4}''');
+    handles.machineId = strcat(r, '-');
+else
+    handles.machineId = '';
+end    
+handles.lastExpFile = char(strcat(handles.machineId, 'lastExp.mat'));
+
+% Create a list of available colormaps
+% Eventually you might want to actually parse the following file
+%   fullfile(matlabroot, 'toolbox', 'matlab', 'graph3d', 'Contents.m');
+handles.cmaps = {'parula', 'hsv', 'hot', 'gray', 'bone', 'copper', 'pink', ...
+                 'white', 'flag', 'lines', 'colorcube', 'vga', 'jet', ...
+                 'prism', 'cool', 'autumn', 'spring', 'winter', 'summer'};
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -105,12 +128,11 @@ handles = guidata(hObject);
 % Let user select the experiment (directory)
 path = uigetdir();
 
-% Store path and files for fast access
-[storePath, ~, ~] = fileparts(mfilename('fullpath'));
-save(fullfile(storePath, handles.lastExpFile), 'path');
-
 % Open and read the stack
 handles = openExperiment(handles, path);
+
+% Store path and experiment info for fast access
+save(fullfile(handles.storePath, handles.lastExpFile), 'path');
 
 % Configure the stack for visualization
 handles = configStack(handles);
@@ -238,6 +260,7 @@ if isfield(handles, 'expInfo')
     name = strcat('Orig_', handles.expInfo.expNameExp);
 end
 
+% Save to workspace
 assignin('base', name, handles.stackOrig);
 
 guidata(hObject, handles);
@@ -250,7 +273,7 @@ function exportCurrent2Ws_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-if ~isfield(handles, 'stackOrig')
+if ~isfield(handles, 'stackImg')
     msgbox('There is no stack to export!');
     return
 end
@@ -260,10 +283,137 @@ if isfield(handles, 'expInfo')
     name = strcat('Curr_', handles.expInfo.expNameExp);
 end
 
-assignin('base', name, handles.stackOrig);
+% Save to workspace
+assignin('base', name, handles.stackImg);
 
 guidata(hObject, handles);
 
+
+% --- Executes on button press in exportOrig2Fil.
+function exportOrig2Fil_Callback(hObject, eventdata, handles)
+% hObject    handle to exportOrig2Fil (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackOrig')
+    msgbox('There is no stack to export!');
+    return
+end
+
+name = 'Original';
+if isfield(handles, 'expInfo')
+    name = strcat('Orig_', handles.expInfo.expNameExp);
+end
+
+% Save to file
+save(fullfile(handles.storePath, char(strcat(handles.machineId, name, '.mat'))), ...
+     '-struct', 'handles', 'stackOrig');
+ 
+guidata(hObject, handles);
+
+
+% --- Executes on button press in exportCurr2Fil.
+function exportCurr2Fil_Callback(hObject, eventdata, handles)
+% hObject    handle to exportCurr2Fil (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackImg')
+    msgbox('There is no stack to export!');
+    return
+end
+
+name = 'Current';
+if isfield(handles, 'expInfo')
+    name = strcat('Curr_', handles.expInfo.expNameExp);
+end
+
+% Save to file
+save(fullfile(handles.storePath, char(strcat(handles.machineId, name, '.mat'))), ...
+     '-struct', 'handles', 'stackImg');
+
+guidata(hObject, handles);
+
+
+
+
+
+% --- Executes on button press in exportOrig2Tif.
+function exportOrig2Tif_Callback(hObject, eventdata, handles)
+% hObject    handle to exportOrig2Tif (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackOrig')
+    msgbox('There is no stack to export!');
+    return
+end
+
+name = 'Original';
+if isfield(handles, 'expInfo')
+    name = strcat('Orig_', handles.expInfo.expNameExp);
+end
+
+% Extract the current time slice
+data = handles.stackOrig(:, :, :, handles.stackIdx);
+
+% Normalize and scale to 16-bit
+data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+% Save current time to tiff file
+for sliceIdx = 1:handles.sliceNum
+    imwrite(data(:, :, sliceIdx), ...
+            fullfile(handles.storePath, ...
+                     char(strcat(handles.machineId, ...
+                                 name, ...
+                                 '-t', ...
+                                 num2str(handles.stackIdx), ...
+                                 '.tif'))), ...
+            'WriteMode', 'append');
+end
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in exportCurr2Tiff.
+function exportCurr2Tiff_Callback(hObject, eventdata, handles)
+% hObject    handle to exportCurr2Tiff (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackImg')
+    msgbox('There is no stack to export!');
+    return
+end
+
+name = 'Current';
+if isfield(handles, 'expInfo')
+    name = strcat('Curr_', handles.expInfo.expNameExp);
+end
+
+% Extract the current time slice
+data = handles.stackOrig(:, :, :, handles.stackIdx);
+
+% Normalize and scale to 16-bit
+data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+% Save current time to tiff file
+for sliceIdx = 1:handles.sliceNum
+    imwrite(data(:, :, sliceIdx), ...
+            fullfile(handles.storePath, ...
+                     char(strcat(handles.machineId, ...
+                                 name, ...
+                                 '-t', ...
+                                 num2str(handles.stackIdx), ...
+                                 '.tif'))), ...
+            'WriteMode', 'append');
+end
+
+guidata(hObject, handles);
 
 
 % --- Executes on button press in loadLatest.
@@ -273,8 +423,7 @@ function loadLatest_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-[storePath, ~, ~] = fileparts(mfilename('fullpath'));
-load(fullfile(storePath, handles.lastExpFile), 'path');
+load(fullfile(handles.storePath, handles.lastExpFile), 'path');
 
 % Open and read the stack
 handles = openExperiment(handles, path);
@@ -309,7 +458,7 @@ list = list(cellfun('length', {list.size}) == 4);
 
 % Check if there is anything left
 if isempty(list) == 1
-    msgbox('There are not 4D variables in the workspace');
+    msgbox('There are no 4D variables in the workspace');
     return
 end
     
@@ -334,6 +483,54 @@ handles = configStack(handles);
 handles = updateGui(handles);
 
 guidata(hObject, handles);
+
+
+% --- Executes on button press in loadFile.
+function loadFile_Callback(hObject, eventdata, handles)
+% hObject    handle to loadFile (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% If expInfo exists, clear it
+if isfield(handles, 'expInfo')
+    handles = rmfield(handles, 'expInfo');
+end
+
+% Let user select the experiment (directory)
+[fName, pName] = uigetfile(fullfile(handles.storePath, '*.mat'), ...
+                           'Select a file containing a 4D stack (x, y, z, t)');
+                       
+% Load stack
+data = load(fullfile(pName, fName));
+fnames = fieldnames(data);
+found = false;
+
+% Load the first suitable variable
+for idx = 1 : length(fnames)
+    stack = data.(fnames{idx});
+    if length(size(stack)) == 4
+        handles.stackOrig = stack;
+        found = true;
+        break
+    end
+end
+   
+% If no suitable variable was found, bail
+if ~found
+    msgbox('There are not 4D variables in the file');
+    return
+end
+
+% Configure the stack for visualization
+handles = configStack(handles);
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
 
 
 
@@ -476,9 +673,7 @@ switch handles.selection.mode
         switch handles.buttonType
             case 'normal' % Left Single-Click
                 if handles.onImage
-                    figure(1);
-                    hold all;
-                    plot(squeeze(handles.stackOrig(handles.posIdx(2), handles.posIdx(1), handles.sliceIdx, :)));
+                    handles = analyzePoint(handles);
                 end
             case 'open' % Left Double-Click
         end
@@ -529,3 +724,44 @@ try
     handles.arrayIdx = num2cell(pos);
 catch ME
 end
+
+
+% --------------------------------------------------------------------
+function menuOptions_Callback(hObject, eventdata, handles)
+% hObject    handle to menuOptions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function mOptColormap_Callback(hObject, eventdata, handles)
+% hObject    handle to mOptColormap (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Ask user to pick the colormap  
+[s, v] = listdlg('PromptString', 'Select the desired colormap:', ...
+                 'SelectionMode', 'single', ...
+                 'ListString', handles.cmaps);
+             
+% If error, bail
+if v == 0
+    msgbox('There was an error during the selection process.');
+    return
+end
+
+% Check if the colormap exists
+map = handles.cmaps{s};
+if exist(map, 'file') == 0
+    msgbox('The selected colormap is not available on this system');
+    return
+end
+
+% Change the colormap of the main axis
+try
+    colormap(handles.mainAx, map);
+catch ME
+end
+
+guidata(hObject, handles);
