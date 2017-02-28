@@ -8,8 +8,9 @@ colrs = jet(handles.stackNum);
 hold off;
 
 % Prepare cell array for excel export
-handles.toExcel = struct([]);
-handles.toExcel(1).sheet = 'Val-vs-Pxl';
+handles.toExcel = struct();
+handles.toExcel.sheet = struct([]);
+handles.toExcel.sheet(1).name = 'Val-vs-Pxl';
 
 % Extract coordinates of points in the cross section
 [cx, cy, ~] = improfile(handles.stackOrig(:, :, 1, 1), pos(:, 1), pos(:, 2));
@@ -46,7 +47,7 @@ xlabel(txt);
 
 % Store in handle for export
 data(1, 1) = cellstr('Evolution over time of cross section');
-handles.toExcel(1).data = data;
+handles.toExcel.sheet(1).data = data;
 
 
 
@@ -55,7 +56,7 @@ handles.toExcel(1).data = data;
 
 
 % Prepare second sheet for excel export
-handles.toExcel(2).sheet = 'CSPxl-vs-Tim';
+handles.toExcel.sheet(2).name = 'CSPxl-vs-Tim';
 
 % Preallocate, label, and add coordinates
 data = cell(handles.stackNum + 4, lcx + 1);
@@ -84,7 +85,14 @@ xlabel('Time');
 
 % Store in handle for export
 data(1, 1) = cellstr('Evolution over time of each pixel in the cross section');
-handles.toExcel(2).data = data;
+handles.toExcel.sheet(2).data = data;
+
+% Prepare export file name
+name = 'LineAnalysis';
+if isfield(handles, 'expInfo')
+    name = strcat('Line_', handles.expInfo.expNameExp);
+end
+handles.toExcel.fileName = fullfile(handles.storePath, char(strcat(handles.machineId, name, '.xlsx')));
 
 
 

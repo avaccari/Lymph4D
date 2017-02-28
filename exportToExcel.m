@@ -8,15 +8,11 @@ if ~isfield(handles, 'toExcel')
     return
 end
 
-name = 'Line';
-if isfield(handles, 'expInfo')
-    name = strcat('Line_', handles.expInfo.expNameExp);
-end
 
 % For each element in the cell array look for sheet name and data and save
-for idx = 1 : length(handles.toExcel)
-xlswrite(fullfile(handles.storePath, char(strcat(handles.machineId, name, '.xlsx'))), ...
-     handles.toExcel(idx).data, ...
-     handles.toExcel(idx).sheet);
+for idx = 1 : length(handles.toExcel.sheet)
+xlswrite(handles.toExcel.fileName, ...
+         handles.toExcel.sheet(idx).data, ...
+         handles.toExcel.sheet(idx).name);
 end
     
