@@ -92,9 +92,13 @@ name = 'LineAnalysis';
 if isfield(handles, 'expInfo')
     name = strcat('Line_', handles.expInfo.expNameExp);
 end
-handles.toExcel.fileName = fullfile(handles.storePath, char(strcat(handles.machineId, name, '.xlsx')));
 
-
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+handles.toExcel.fileName = fullfile(dir, char(strcat(handles.machineId, name, '.xlsx')));
 
 % Add button with callback to export to excell
 uicontrol('parent', f2, ...

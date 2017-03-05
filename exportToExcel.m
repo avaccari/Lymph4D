@@ -8,10 +8,22 @@ if ~isfield(handles, 'toExcel')
     return
 end
 
+% Suggest user and ask where to save
+file = handles.toExcel.fileName;
+[file, dir] = uiputfile('*.xlsx', ...
+                        'Save file name', ...
+                        file);
 
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+                                    
 % For each element in the cell array look for sheet name and data and save
+handles.lastSaveDir = dir;
+warning('off','MATLAB:xlswrite:AddSheet');
 for idx = 1 : length(handles.toExcel.sheet)
-xlswrite(handles.toExcel.fileName, ...
+xlswrite(fullfile(dir, file), ...
          handles.toExcel.sheet(idx).data, ...
          handles.toExcel.sheet(idx).name);
 end

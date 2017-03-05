@@ -27,6 +27,7 @@ axes(handles.mainAx);
 handles.img = imagesc(img(:, :, 1, 1), clims);
 handles.stackIdx = 1;
 handles.sliceIdx = 1;
+colormap(handles.mainAx, 'hsv');
 
 % Zero the sliders
 set(handles.stackSlider, 'Value', 0);

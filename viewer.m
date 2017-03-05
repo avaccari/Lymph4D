@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 27-Feb-2017 16:08:24
+% Last Modified by GUIDE v2.5 28-Feb-2017 13:48:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -301,13 +301,32 @@ if ~isfield(handles, 'stackOrig')
     return
 end
 
+% Prepare name of file
 name = 'Original';
 if isfield(handles, 'expInfo')
     name = strcat('Orig_', handles.expInfo.expNameExp);
 end
 
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.mat', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+                                    
 % Save to file
-save(fullfile(handles.storePath, char(strcat(handles.machineId, name, '.mat'))), ...
+handles.lastSaveDir = dir;
+save(fullfile(dir, file), ...
      '-struct', 'handles', 'stackOrig');
  
 guidata(hObject, handles);
@@ -325,13 +344,32 @@ if ~isfield(handles, 'stackImg')
     return
 end
 
+% Prepare name of file
 name = 'Current';
 if isfield(handles, 'expInfo')
     name = strcat('Curr_', handles.expInfo.expNameExp);
 end
 
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.mat', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+                                    
 % Save to file
-save(fullfile(handles.storePath, char(strcat(handles.machineId, name, '.mat'))), ...
+handles.lastSaveDir = dir;
+save(fullfile(dir, file), ...
      '-struct', 'handles', 'stackImg');
 
 guidata(hObject, handles);
@@ -352,29 +390,80 @@ if ~isfield(handles, 'stackOrig')
     return
 end
 
+% Prepare name of file
 name = 'Original';
 if isfield(handles, 'expInfo')
     name = strcat('Orig_', handles.expInfo.expNameExp);
 end
 
-% Extract the current time slice
-data = handles.stackOrig(:, :, :, handles.stackIdx);
-
-% Normalize and scale to 16-bit
-data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-
-% Save current time to tiff file
-for sliceIdx = 1:handles.sliceNum
-    imwrite(data(:, :, sliceIdx), ...
-            fullfile(handles.storePath, ...
-                     char(strcat(handles.machineId, ...
-                                 name, ...
-                                 '-t', ...
-                                 num2str(handles.stackIdx), ...
-                                 '.tif'))), ...
-            'WriteMode', 'append');
+% Ask user if slice vs time or stack at current time
+export = questdlg('What should be exported?', ...
+                  'Export to Tiff', ...
+                  'Slice vs Time', ...
+                  'Stack at Time', ...
+                  'Stack at Time');
+if isempty(export)
+    export = 'Stack at Time';
 end
 
+% Prepare file name appendix
+fileSpec = ['-t' num2str(handles.stackIdx)];
+if strcmp(export, 'Slice vs Time')
+    fileSpec = ['-s' num2str(handles.sliceIdx)];
+end
+
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, ...
+                    char(strcat(handles.machineId, ...
+                                name, ...
+                                fileSpec, ...
+                                '.tif')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.tif', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+
+if strcmp(export, 'Stack at Time')
+    % Extract the current time slice
+    data = handles.stackOrig(:, :, :, handles.stackIdx);
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for sliceIdx = 1:handles.sliceNum
+        imwrite(data(:, :, sliceIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
+else
+    % Extract the current time slice
+    data = squeeze(handles.stackOrig(:, :, handles.sliceIdx, :));
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for stackIdx = 1:handles.stackNum
+        imwrite(data(:, :, stackIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
+end
+    
+    
 guidata(hObject, handles);
 
 
@@ -390,27 +479,77 @@ if ~isfield(handles, 'stackImg')
     return
 end
 
+% Prepare name of file
 name = 'Current';
 if isfield(handles, 'expInfo')
     name = strcat('Curr_', handles.expInfo.expNameExp);
 end
 
-% Extract the current time slice
-data = handles.stackOrig(:, :, :, handles.stackIdx);
+% Ask user if slice vs time or stack at current time
+export = questdlg('What should be exported?', ...
+                  'Export to Tiff', ...
+                  'Slice vs Time', ...
+                  'Stack at Time', ...
+                  'Stack at Time');
+if isempty(export)
+    export = 'Stack at Time';
+end
 
-% Normalize and scale to 16-bit
-data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+% Prepare file name appendix
+fileSpec = ['-t' num2str(handles.stackIdx)];
+if strcmp(export, 'Slice vs Time')
+    fileSpec = ['-s' num2str(handles.sliceIdx)];
+end
 
-% Save current time to tiff file
-for sliceIdx = 1:handles.sliceNum
-    imwrite(data(:, :, sliceIdx), ...
-            fullfile(handles.storePath, ...
-                     char(strcat(handles.machineId, ...
-                                 name, ...
-                                 '-t', ...
-                                 num2str(handles.stackIdx), ...
-                                 '.tif'))), ...
-            'WriteMode', 'append');
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, ...
+                    char(strcat(handles.machineId, ...
+                                name, ...
+                                fileSpec, ...
+                                '.tif')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.tif', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+
+if strcmp(export, 'Stack at Time')
+    % Extract the current time slice
+    data = handles.stackImg(:, :, :, handles.stackIdx);
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for sliceIdx = 1:handles.sliceNum
+        imwrite(data(:, :, sliceIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
+else
+    % Extract the current time slice
+    data = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for stackIdx = 1:handles.stackNum
+        imwrite(data(:, :, stackIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
 end
 
 guidata(hObject, handles);
@@ -423,7 +562,12 @@ function loadLatest_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-load(fullfile(handles.storePath, handles.lastExpFile), 'path');
+try
+    load(fullfile(handles.storePath, handles.lastExpFile), 'path');
+catch ME
+    msgbox('Cannot locate file containing latest experiment information');
+    return
+end
 
 % Open and read the stack
 handles = openExperiment(handles, path);
@@ -547,6 +691,8 @@ catch ME
 end
 
 guidata(hObject, handles);
+
+
 
 
 % --- Executes on button press in selPoint.
