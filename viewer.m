@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 28-Feb-2017 13:48:31
+% Last Modified by GUIDE v2.5 06-Mar-2017 11:33:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -239,318 +239,6 @@ handles = guidata(hObject);
 handles.stackSliderListener = addlistener(hObject, ...
                                           'ContinuousValueChange', ...
                                           @(hObject, eventdata) stackSlider_Callback(hObject, eventdata));
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in exportOrig2Ws.
-function exportOrig2Ws_Callback(hObject, eventdata, handles)
-% hObject    handle to exportOrig2Ws (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-if ~isfield(handles, 'stackOrig')
-    msgbox('There is no stack to export!');
-    return
-end
-
-name = 'Original';
-if isfield(handles, 'expInfo')
-    name = strcat('Orig_', handles.expInfo.expNameExp);
-end
-
-% Save to workspace
-assignin('base', name, handles.stackOrig);
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in exportCurrent2Ws.
-function exportCurrent2Ws_Callback(hObject, eventdata, handles)
-% hObject    handle to exportCurrent2Ws (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-if ~isfield(handles, 'stackImg')
-    msgbox('There is no stack to export!');
-    return
-end
-
-name = 'Current';
-if isfield(handles, 'expInfo')
-    name = strcat('Curr_', handles.expInfo.expNameExp);
-end
-
-% Save to workspace
-assignin('base', name, handles.stackImg);
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in exportOrig2Fil.
-function exportOrig2Fil_Callback(hObject, eventdata, handles)
-% hObject    handle to exportOrig2Fil (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-if ~isfield(handles, 'stackOrig')
-    msgbox('There is no stack to export!');
-    return
-end
-
-% Prepare name of file
-name = 'Original';
-if isfield(handles, 'expInfo')
-    name = strcat('Orig_', handles.expInfo.expNameExp);
-end
-
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
-
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.mat', ...
-                        'Save file name', ...
-                        fileName);
-
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-                                    
-% Save to file
-handles.lastSaveDir = dir;
-save(fullfile(dir, file), ...
-     '-struct', 'handles', 'stackOrig');
- 
-guidata(hObject, handles);
-
-
-% --- Executes on button press in exportCurr2Fil.
-function exportCurr2Fil_Callback(hObject, eventdata, handles)
-% hObject    handle to exportCurr2Fil (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-if ~isfield(handles, 'stackImg')
-    msgbox('There is no stack to export!');
-    return
-end
-
-% Prepare name of file
-name = 'Current';
-if isfield(handles, 'expInfo')
-    name = strcat('Curr_', handles.expInfo.expNameExp);
-end
-
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
-
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.mat', ...
-                        'Save file name', ...
-                        fileName);
-
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-                                    
-% Save to file
-handles.lastSaveDir = dir;
-save(fullfile(dir, file), ...
-     '-struct', 'handles', 'stackImg');
-
-guidata(hObject, handles);
-
-
-
-
-
-% --- Executes on button press in exportOrig2Tif.
-function exportOrig2Tif_Callback(hObject, eventdata, handles)
-% hObject    handle to exportOrig2Tif (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-if ~isfield(handles, 'stackOrig')
-    msgbox('There is no stack to export!');
-    return
-end
-
-% Prepare name of file
-name = 'Original';
-if isfield(handles, 'expInfo')
-    name = strcat('Orig_', handles.expInfo.expNameExp);
-end
-
-% Ask user if slice vs time or stack at current time
-export = questdlg('What should be exported?', ...
-                  'Export to Tiff', ...
-                  'Slice vs Time', ...
-                  'Stack at Time', ...
-                  'Stack at Time');
-if isempty(export)
-    export = 'Stack at Time';
-end
-
-% Prepare file name appendix
-fileSpec = ['-t' num2str(handles.stackIdx)];
-if strcmp(export, 'Slice vs Time')
-    fileSpec = ['-s' num2str(handles.sliceIdx)];
-end
-
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, ...
-                    char(strcat(handles.machineId, ...
-                                name, ...
-                                fileSpec, ...
-                                '.tif')));
-
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.tif', ...
-                        'Save file name', ...
-                        fileName);
-
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-
-if strcmp(export, 'Stack at Time')
-    % Extract the current time slice
-    data = handles.stackOrig(:, :, :, handles.stackIdx);
-
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for sliceIdx = 1:handles.sliceNum
-        imwrite(data(:, :, sliceIdx), ...
-                fullfile(dir, file), ...
-                'WriteMode', 'append');
-    end
-else
-    % Extract the current time slice
-    data = squeeze(handles.stackOrig(:, :, handles.sliceIdx, :));
-
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for stackIdx = 1:handles.stackNum
-        imwrite(data(:, :, stackIdx), ...
-                fullfile(dir, file), ...
-                'WriteMode', 'append');
-    end
-end
-    
-    
-guidata(hObject, handles);
-
-
-% --- Executes on button press in exportCurr2Tiff.
-function exportCurr2Tiff_Callback(hObject, eventdata, handles)
-% hObject    handle to exportCurr2Tiff (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-if ~isfield(handles, 'stackImg')
-    msgbox('There is no stack to export!');
-    return
-end
-
-% Prepare name of file
-name = 'Current';
-if isfield(handles, 'expInfo')
-    name = strcat('Curr_', handles.expInfo.expNameExp);
-end
-
-% Ask user if slice vs time or stack at current time
-export = questdlg('What should be exported?', ...
-                  'Export to Tiff', ...
-                  'Slice vs Time', ...
-                  'Stack at Time', ...
-                  'Stack at Time');
-if isempty(export)
-    export = 'Stack at Time';
-end
-
-% Prepare file name appendix
-fileSpec = ['-t' num2str(handles.stackIdx)];
-if strcmp(export, 'Slice vs Time')
-    fileSpec = ['-s' num2str(handles.sliceIdx)];
-end
-
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, ...
-                    char(strcat(handles.machineId, ...
-                                name, ...
-                                fileSpec, ...
-                                '.tif')));
-
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.tif', ...
-                        'Save file name', ...
-                        fileName);
-
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-
-if strcmp(export, 'Stack at Time')
-    % Extract the current time slice
-    data = handles.stackImg(:, :, :, handles.stackIdx);
-
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for sliceIdx = 1:handles.sliceNum
-        imwrite(data(:, :, sliceIdx), ...
-                fullfile(dir, file), ...
-                'WriteMode', 'append');
-    end
-else
-    % Extract the current time slice
-    data = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
-
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for stackIdx = 1:handles.stackNum
-        imwrite(data(:, :, stackIdx), ...
-                fullfile(dir, file), ...
-                'WriteMode', 'append');
-    end
-end
 
 guidata(hObject, handles);
 
@@ -837,7 +525,7 @@ switch handles.selection.mode
                         handles.drawing.line = imline(handles.mainAx, ...
                                                       [handles.posIdx(1), handles.posIdx(1) + 10], ...
                                                       [handles.posIdx(2), handles.posIdx(2) + 10]);
-                        handles.drawing.line.setColor('green');
+                        handles.drawing.line.setColor('black');
                         handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles));
                     end
                 end
@@ -872,6 +560,8 @@ catch ME
 end
 
 
+
+%% MENU: Options
 % --------------------------------------------------------------------
 function menuOptions_Callback(hObject, eventdata, handles)
 % hObject    handle to menuOptions (see GCBO)
@@ -909,5 +599,347 @@ try
     colormap(handles.mainAx, map);
 catch ME
 end
+
+guidata(hObject, handles);
+
+
+
+
+%% MENU - Export
+% --------------------------------------------------------------------
+function menuExport_Callback(hObject, eventdata, handles)
+% hObject    handle to menuExport (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function mExp2Ws_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2Ws (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function mExp2File_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2File (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function mExp2Tiff_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2Tiff (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function mExp2TiffOrig_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2TiffOrig (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackOrig')
+    msgbox('There is no stack to export!');
+    return
+end
+
+% Prepare name of file
+name = 'Original';
+if isfield(handles, 'expInfo')
+    name = strcat('Orig_', handles.expInfo.expNameExp);
+end
+
+% Ask user if slice vs time or stack at current time
+export = questdlg('What should be exported?', ...
+                  'Export to Tiff', ...
+                  'Slice vs Time', ...
+                  'Stack at Time', ...
+                  'Stack at Time');
+if isempty(export)
+    export = 'Stack at Time';
+end
+
+% Prepare file name appendix
+fileSpec = ['-t' num2str(handles.stackIdx)];
+if strcmp(export, 'Slice vs Time')
+    fileSpec = ['-s' num2str(handles.sliceIdx)];
+end
+
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, ...
+                    char(strcat(handles.machineId, ...
+                                name, ...
+                                fileSpec, ...
+                                '.tif')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.tif', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+
+if strcmp(export, 'Stack at Time')
+    % Extract the current time slice
+    data = handles.stackOrig(:, :, :, handles.stackIdx);
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for sliceIdx = 1:handles.sliceNum
+        imwrite(data(:, :, sliceIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
+else
+    % Extract the current time slice
+    data = squeeze(handles.stackOrig(:, :, handles.sliceIdx, :));
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for stackIdx = 1:handles.stackNum
+        imwrite(data(:, :, stackIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
+end
+    
+    
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function mExp2TiffCurr_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2TiffCurr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackImg')
+    msgbox('There is no stack to export!');
+    return
+end
+
+% Prepare name of file
+name = 'Current';
+if isfield(handles, 'expInfo')
+    name = strcat('Curr_', handles.expInfo.expNameExp);
+end
+
+% Ask user if slice vs time or stack at current time
+export = questdlg('What should be exported?', ...
+                  'Export to Tiff', ...
+                  'Slice vs Time', ...
+                  'Stack at Time', ...
+                  'Stack at Time');
+if isempty(export)
+    export = 'Stack at Time';
+end
+
+% Prepare file name appendix
+fileSpec = ['-t' num2str(handles.stackIdx)];
+if strcmp(export, 'Slice vs Time')
+    fileSpec = ['-s' num2str(handles.sliceIdx)];
+end
+
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, ...
+                    char(strcat(handles.machineId, ...
+                                name, ...
+                                fileSpec, ...
+                                '.tif')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.tif', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+
+if strcmp(export, 'Stack at Time')
+    % Extract the current time slice
+    data = handles.stackImg(:, :, :, handles.stackIdx);
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for sliceIdx = 1:handles.sliceNum
+        imwrite(data(:, :, sliceIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
+else
+    % Extract the current time slice
+    data = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
+
+    % Normalize and scale to 16-bit
+    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+    % Save current time to tiff file
+    handles.lastSaveDir = dir;
+    for stackIdx = 1:handles.stackNum
+        imwrite(data(:, :, stackIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+    end
+end
+
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function mExp2FileOrig_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2FileOrig (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackOrig')
+    msgbox('There is no stack to export!');
+    return
+end
+
+% Prepare name of file
+name = 'Original';
+if isfield(handles, 'expInfo')
+    name = strcat('Orig_', handles.expInfo.expNameExp);
+end
+
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.mat', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+                                    
+% Save to file
+handles.lastSaveDir = dir;
+save(fullfile(dir, file), ...
+     '-struct', 'handles', 'stackOrig');
+ 
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function mExp2FileCurr_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2FileCurr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackImg')
+    msgbox('There is no stack to export!');
+    return
+end
+
+% Prepare name of file
+name = 'Current';
+if isfield(handles, 'expInfo')
+    name = strcat('Curr_', handles.expInfo.expNameExp);
+end
+
+% Check if there is a last dir and prepare a default location
+dir = handles.storePath;
+if isfield(handles, 'lastSaveDir')
+    dir = handles.lastSaveDir;
+end
+fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
+
+% Suggest user and ask where to save
+[file, dir] = uiputfile('*.mat', ...
+                        'Save file name', ...
+                        fileName);
+
+% Check if the user cancelled
+if isequal(file, 0) || isequal(dir, 0)
+    return
+end
+                                    
+% Save to file
+handles.lastSaveDir = dir;
+save(fullfile(dir, file), ...
+     '-struct', 'handles', 'stackImg');
+
+guidata(hObject, handles);
+
+
+
+% --------------------------------------------------------------------
+function mExp2WsOrig_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2WsOrig (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackOrig')
+    msgbox('There is no stack to export!');
+    return
+end
+
+name = 'Original';
+if isfield(handles, 'expInfo')
+    name = strcat('Orig_', handles.expInfo.expNameExp);
+end
+
+% Save to workspace
+assignin('base', name, handles.stackOrig);
+
+guidata(hObject, handles);
+
+
+
+% --------------------------------------------------------------------
+function mExp2WsCurr_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp2WsCurr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if ~isfield(handles, 'stackImg')
+    msgbox('There is no stack to export!');
+    return
+end
+
+name = 'Current';
+if isfield(handles, 'expInfo')
+    name = strcat('Curr_', handles.expInfo.expNameExp);
+end
+
+% Save to workspace
+assignin('base', name, handles.stackImg);
 
 guidata(hObject, handles);
