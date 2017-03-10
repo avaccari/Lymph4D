@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 06-Mar-2017 11:33:35
+% Last Modified by GUIDE v2.5 09-Mar-2017 18:17:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -70,6 +70,10 @@ end
 handles.onImage = false;
 handles.selection.mode = 'point';
 handles.drawing.active = false;
+handles.localMean.use = false;
+handles.localMean.type = 1;
+handles.localMean.size = 5;
+set(handles.setFiltSizEd, 'String', num2str(handles.localMean.size));
 
 % Get unique id
 if ispc
@@ -91,7 +95,7 @@ handles.cmaps = {'parula', 'hsv', 'hot', 'gray', 'bone', 'copper', 'pink', ...
                  'white', 'flag', 'lines', 'colorcube', 'vga', 'jet', ...
                  'prism', 'cool', 'autumn', 'spring', 'winter', 'summer'};
 
-
+             
 % Update handles structure
 guidata(hObject, handles);
 
@@ -143,6 +147,129 @@ handles = updateGui(handles);
 guidata(hObject, handles);
 
 
+% --- Executes on button press in loadLatestBtn.
+function loadLatestBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to loadLatestBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+try
+    load(fullfile(handles.storePath, handles.lastExpFile), 'path');
+catch ME
+    msgbox('Cannot locate file containing latest experiment information');
+    return
+end
+
+% Open and read the stack
+handles = openExperiment(handles, path);
+
+% Configure the stack for visualization
+handles = configStack(handles);
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in loadVarBtn.
+function loadVarBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to loadVarBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% If expInfo exists, clearBtn it
+if isfield(handles, 'expInfo')
+    handles = rmfield(handles, 'expInfo');
+end
+
+% Load the list of variables in the 'base' workspace
+list = evalin('base', 'whos');
+
+% Select only the variable of the right size
+list = list(cellfun('length', {list.size}) == 4);
+
+% Check if there is anything left
+if isempty(list) == 1
+    msgbox('There are no 4D variables in the workspace');
+    return
+end
+    
+% Ask user to pick the variable  
+[s, v] = listdlg('PromptString', 'Select a variable (x, y, z, t):', ...
+                 'SelectionMode', 'single', ...
+                 'ListString', {list.name});
+
+% If error, bail
+if v == 0
+    msgbox('There was an error during the selection process.');
+    return
+end
+
+% Load the variable and open it
+handles.stackOrig = evalin('base', list(s).name);
+
+% Configure the stack for visualization
+handles = configStack(handles);
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in loadFileBtn.
+function loadFileBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to loadFileBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% If expInfo exists, clearBtn it
+if isfield(handles, 'expInfo')
+    handles = rmfield(handles, 'expInfo');
+end
+
+% Let user select the experiment (directory)
+[fName, pName] = uigetfile(fullfile(handles.storePath, '*.mat'), ...
+                           'Select a file containing a 4D stack (x, y, z, t)');
+                       
+% Load stack
+data = load(fullfile(pName, fName));
+fnames = fieldnames(data);
+found = false;
+
+% Load the first suitable variable
+for idx = 1 : length(fnames)
+    stack = data.(fnames{idx});
+    if length(size(stack)) == 4
+        handles.stackOrig = stack;
+        found = true;
+        break
+    end
+end
+   
+% If no suitable variable was found, bail
+if ~found
+    msgbox('There are not 4D variables in the file');
+    return
+end
+
+% Configure the stack for visualization
+handles = configStack(handles);
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
+
+
+
 % --- Executes on slider movement.
 function sliceSlider_Callback(hObject, eventdata, handles)
 % hObject    handle to sliceSlider (see GCBO)
@@ -159,7 +286,15 @@ try
     idx = 1 + floor(get(hObject, 'Value') / dx);
     if idx ~= handles.sliceIdx
         handles.sliceIdx = idx;
-        set(handles.img, 'CData', handles.stackImg(:, :, idx, handles.stackIdx));    
+
+        % Update the axes
+        set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));  
+        if isfield(handles, 'tmpl')
+            try
+                set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+            catch ME
+            end
+        end
 
         % Update array indexing
         handles = updateIdx(handles);
@@ -209,7 +344,15 @@ try
     idx = 1 + floor(get(hObject, 'Value') / dx);
     if idx ~= handles.stackIdx
         handles.stackIdx = idx;
-        set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, idx));    
+
+        % Update the axes
+        set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));  
+        if isfield(handles, 'tmpl')
+            try
+                set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+            catch ME
+            end
+        end
 
         % Update array indexing
         handles = updateIdx(handles);
@@ -243,119 +386,12 @@ handles.stackSliderListener = addlistener(hObject, ...
 guidata(hObject, handles);
 
 
-% --- Executes on button press in loadLatest.
-function loadLatest_Callback(hObject, eventdata, handles)
-% hObject    handle to loadLatest (see GCBO)
+% --- Executes on button press in clearBtn.
+function clearBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to clearBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
-
-try
-    load(fullfile(handles.storePath, handles.lastExpFile), 'path');
-catch ME
-    msgbox('Cannot locate file containing latest experiment information');
-    return
-end
-
-% Open and read the stack
-handles = openExperiment(handles, path);
-
-% Configure the stack for visualization
-handles = configStack(handles);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
-
-
-% --- Executes on button press in loadVariable.
-function loadVariable_Callback(hObject, eventdata, handles)
-% hObject    handle to loadVariable (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-% If expInfo exists, clear it
-if isfield(handles, 'expInfo')
-    handles = rmfield(handles, 'expInfo');
-end
-
-% Load the list of variables in the 'base' workspace
-list = evalin('base', 'whos');
-
-% Select only the variable of the right size
-list = list(cellfun('length', {list.size}) == 4);
-
-% Check if there is anything left
-if isempty(list) == 1
-    msgbox('There are no 4D variables in the workspace');
-    return
-end
-    
-% Ask user to pick the variable  
-[s, v] = listdlg('PromptString', 'Select a variable (x, y, z, t):', ...
-                 'SelectionMode', 'single', ...
-                 'ListString', {list.name});
-
-% If error, bail
-if v == 0
-    msgbox('There was an error during the selection process.');
-    return
-end
-
-% Load the variable and open it
-handles.stackOrig = evalin('base', list(s).name);
-
-% Configure the stack for visualization
-handles = configStack(handles);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in loadFile.
-function loadFile_Callback(hObject, eventdata, handles)
-% hObject    handle to loadFile (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-% If expInfo exists, clear it
-if isfield(handles, 'expInfo')
-    handles = rmfield(handles, 'expInfo');
-end
-
-% Let user select the experiment (directory)
-[fName, pName] = uigetfile(fullfile(handles.storePath, '*.mat'), ...
-                           'Select a file containing a 4D stack (x, y, z, t)');
-                       
-% Load stack
-data = load(fullfile(pName, fName));
-fnames = fieldnames(data);
-found = false;
-
-% Load the first suitable variable
-for idx = 1 : length(fnames)
-    stack = data.(fnames{idx});
-    if length(size(stack)) == 4
-        handles.stackOrig = stack;
-        found = true;
-        break
-    end
-end
-   
-% If no suitable variable was found, bail
-if ~found
-    msgbox('There are not 4D variables in the file');
-    return
-end
-
-% Configure the stack for visualization
-handles = configStack(handles);
 
 % Update display
 handles = updateGui(handles);
@@ -365,31 +401,13 @@ guidata(hObject, handles);
 
 
 
-
-% --- Executes on button press in clear.
-function clear_Callback(hObject, eventdata, handles)
-% hObject    handle to clear (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-try
-    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));    
-catch ME
-end
-
-guidata(hObject, handles);
-
-
-
-
-% --- Executes on button press in selPoint.
-function selPoint_Callback(hObject, eventdata, handles)
-% hObject    handle to selPoint (see GCBO)
+% --- Executes on button press in selPointRbtn.
+function selPointRbtn_Callback(hObject, eventdata, handles)
+% hObject    handle to selPointRbtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of selPoint
+% Hint: get(hObject,'Value') returns toggle state of selPointRbtn
 handles = guidata(hObject);
     
 handles.selection.mode = 'point';
@@ -397,13 +415,13 @@ handles.selection.mode = 'point';
 guidata(hObject, handles);
 
 
-% --- Executes on button press in selLine.
-function selLine_Callback(hObject, eventdata, handles)
-% hObject    handle to selLine (see GCBO)
+% --- Executes on button press in selLineRbtn.
+function selLineRbtn_Callback(hObject, eventdata, handles)
+% hObject    handle to selLineRbtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of selLine
+% Hint: get(hObject,'Value') returns toggle state of selLineRbtn
 handles = guidata(hObject);
     
 handles.selection.mode = 'line';
@@ -411,13 +429,13 @@ handles.selection.mode = 'line';
 guidata(hObject, handles);
 
 
-% --- Executes on button press in selRect.
-function selRect_Callback(hObject, eventdata, handles)
-% hObject    handle to selRect (see GCBO)
+% --- Executes on button press in selRectRbtn.
+function selRectRbtn_Callback(hObject, eventdata, handles)
+% hObject    handle to selRectRbtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of selRect
+% Hint: get(hObject,'Value') returns toggle state of selRectRbtn
 handles = guidata(hObject);
     
 handles.selection.mode = 'rectangle';
@@ -425,19 +443,237 @@ handles.selection.mode = 'rectangle';
 guidata(hObject, handles);
 
 
-% --- Executes on button press in selCircle.
-function selCircle_Callback(hObject, eventdata, handles)
-% hObject    handle to selCircle (see GCBO)
+% --- Executes on button press in selCircleRbtn.
+function selCircleRbtn_Callback(hObject, eventdata, handles)
+% hObject    handle to selCircleRbtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of selCircle
+% Hint: get(hObject,'Value') returns toggle state of selCircleRbtn
 handles = guidata(hObject);
     
 handles.selection.mode = 'circle';
 
 guidata(hObject, handles);
 
+
+% --- Executes on button press in setFiltOnChk.
+function setFiltOnChk_Callback(hObject, eventdata, handles)
+% hObject    handle to setFiltOnChk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of setFiltOnChk
+handles = guidata(hObject);
+
+handles.localMean.use = get(hObject, 'Value');
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+% Redraw the graph with the new parameters
+if handles.drawing.active
+    analyzeLine(handles.drawing.line.getPosition, handles.mainGui);
+end
+
+
+
+
+
+% --- Executes on selection change in setFiltTypPop.
+function setFiltTypPop_Callback(hObject, eventdata, handles)
+% hObject    handle to setFiltTypPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns setFiltTypPop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from setFiltTypPop
+handles = guidata(hObject);
+
+% Choices (defined in guide):
+% 1 - 'Disk (radius)'
+% 2 - 'Gaussian (sigma)'
+handles.localMean.type = get(hObject, 'Value');
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+% Redraw the graph with the new parameters
+if handles.drawing.active
+    analyzeLine(handles.drawing.line.getPosition, handles.mainGui);
+end
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setFiltTypPop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setFiltTypPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function setFiltSizEd_Callback(hObject, eventdata, handles)
+% hObject    handle to setFiltSizEd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of setFiltSizEd as text
+%        str2double(get(hObject,'String')) returns contents of setFiltSizEd as a double
+handles = guidata(hObject);
+
+handles.localMean.size = str2double(get(hObject, 'String'));
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+% Redraw the graph with the new parameters
+if handles.drawing.active
+    analyzeLine(handles.drawing.line.getPosition, handles.mainGui);
+end
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setFiltSizEd_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setFiltSizEd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+% --- Executes on button press in setTempBtn.
+function setTempBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to setTempBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Copy current stack to template
+handles.stackTmpl = handles.stackImg;
+handles.templExpName = handles.expInfo.expName;
+
+% Show current image
+axes(handles.tmplAx);
+handles.tmpl = imagesc(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), handles.stackCLims);
+colormap(handles.tmplAx, 'hsv');
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in clearTemplBtn.
+function clearTemplBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to clearTemplBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Check if there is a template to clear
+if ~isfield(handles, 'tmpl')
+    return
+end
+
+% Clear axes
+cla(handles.tmplAx);
+
+% Remove from handles
+handles = rmfield(handles, {'stackTmpl', 'tmpl', 'templExpName'});
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in align2TemplBtn.
+function align2TemplBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to align2TemplBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Check if there is a template, if not bail
+if ~isfield(handles, 'tmpl')
+    return
+end
+
+% Use current slice
+mipImg = handles.stackOrig(:, :, handles.sliceIdx, handles.stackIdx);
+mipTmpl = handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx);
+
+% Smooth images
+mipImg = imgaussfilt(mipImg, 2);
+mipTmpl = imgaussfilt(mipTmpl, 2);
+
+% Threshold noise
+th = 100;  % Maybe allow the user to change it
+mipImg(mipImg < th) = 0;
+mipTmpl(mipTmpl < th) = 0;
+
+% Normalize images
+mipImg = mipImg / max(mipImg(:));
+mipTmpl = mipTmpl / max(mipTmpl(:));
+
+% Show the results
+f3 = figure(3);
+hold on;
+subplot(1, 2, 1, 'Parent', f3); imagesc(mipTmpl);
+subplot(1, 2, 2, 'Parent', f3); imagesc(mipImg); 
+
+% Find and show the centroids
+propImg = regionprops(ones(size(mipImg)), mipImg, 'WeightedCentroid');
+propTmpl = regionprops(ones(size(mipTmpl)), mipTmpl, 'WeightedCentroid');
+ctrImg = propImg.WeightedCentroid;
+ctrTmpl = propTmpl.WeightedCentroid;
+subplot(1, 2, 1, 'Parent', f3); imagesc(mipTmpl);
+line([ctrTmpl(1) - 1, ctrTmpl(1) + 1], [ctrTmpl(2), ctrTmpl(2)], 'Color', 'r');
+line([ctrTmpl(1), ctrTmpl(1)], [ctrTmpl(2) - 1, ctrTmpl(2) + 1], 'Color', 'r');
+subplot(1, 2, 2, 'Parent', f3); imagesc(mipImg); 
+line([ctrImg(1) - 1, ctrImg(1) + 1], [ctrImg(2), ctrImg(2)], 'Color', 'r');
+line([ctrImg(1), ctrImg(1)], [ctrImg(2) - 1, ctrImg(2) + 1], 'Color', 'r');
+hold off;
+
+% Find and show main axes
+
+
+% Ask user to proceed
+if ~strcmp('Yes', questdlg('Proceed with alignment?'))
+    close(f3);
+    return
+end
+
+% Move the current stack to match the tamplate
+shift = round(ctrTmpl - ctrImg);
+handles.stackImg = circshift(handles.stackOrig, [shift(2), shift(1), 0, 0]);
+
+% Update axes
+set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+
+% Close figure
+close(f3);
+
+guidata(hObject, handles);
 
 
 
@@ -520,18 +756,25 @@ switch handles.selection.mode
                                'section. The temporal evolution will be shown', ...
                                'in real time in a popup figure.', ...
                                'To remove the line, double click on it.'};
-                        msgbox(txt);
+                        uiwait(msgbox(txt));
                         handles.drawing.active = true;
+                        startPos = [handles.posIdx(1), handles.posIdx(1) + 10; ...
+                                    handles.posIdx(2), handles.posIdx(2) + 10];
                         handles.drawing.line = imline(handles.mainAx, ...
-                                                      [handles.posIdx(1), handles.posIdx(1) + 10], ...
-                                                      [handles.posIdx(2), handles.posIdx(2) + 10]);
+                                                      startPos(1, :), ...
+                                                      startPos(2, :));
                         handles.drawing.line.setColor('black');
-                        handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles));
+                        handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles.mainGui));
+                        analyzeLine(startPos', handles.mainGui);
                     end
                 end
             case 'open'
                 handles.drawing.active = false;
                 handles.drawing.line.delete();
+                try
+                    close(handles.figLine);
+                catch ME
+                end
         end
     case 'rectangle'
         switch handles.buttonType
@@ -560,8 +803,10 @@ catch ME
 end
 
 
+% --------------------------------------------------------------------
+% MENU
+% --------------------------------------------------------------------
 
-%% MENU: Options
 % --------------------------------------------------------------------
 function menuOptions_Callback(hObject, eventdata, handles)
 % hObject    handle to menuOptions (see GCBO)
@@ -605,7 +850,7 @@ guidata(hObject, handles);
 
 
 
-%% MENU - Export
+
 % --------------------------------------------------------------------
 function menuExport_Callback(hObject, eventdata, handles)
 % hObject    handle to menuExport (see GCBO)
@@ -635,7 +880,7 @@ function mExp2Tiff_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function mExp2TiffOrig_Callback(hObject, eventdata, handles)
+function mExp2TiffOrig_Callback(hObject, ~, handles)
 % hObject    handle to mExp2TiffOrig (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -690,7 +935,7 @@ if isequal(file, 0) || isequal(dir, 0)
 end
 
 if strcmp(export, 'Stack at Time')
-    % Extract the current time slice
+    % Extract the current time stack
     data = handles.stackOrig(:, :, :, handles.stackIdx);
 
     % Normalize and scale to 16-bit
@@ -943,3 +1188,6 @@ end
 assignin('base', name, handles.stackImg);
 
 guidata(hObject, handles);
+
+
+

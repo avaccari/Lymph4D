@@ -6,7 +6,7 @@ handles = updateTxtSliceIdx(handles);
 handles = updateTxtStackIdx(handles);
 handles = updateTxtPosIdx(handles);
 handles = updateTxtExpName(handles);
-
+handles = updateTxtTemplExpName(handles);
 
 % --- Update index indicator
 function handles = updateTxtSliceIdx(handles)
@@ -43,6 +43,17 @@ catch ME
     txt = 'Experiment:';
 end
 set(handles.txtExpName, 'String', txt);
+
+
+% --- Update template experiment name
+function handles = updateTxtTemplExpName(handles)
+try
+    txt = strcat('Experiment:', ...
+                 handles.templExpName);
+catch ME
+    txt = 'Experiment:';
+end
+set(handles.txtTemplExpName, 'String', txt);
 
 
 % --- Update position indicator
