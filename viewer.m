@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 09-Mar-2017 18:17:07
+% Last Modified by GUIDE v2.5 12-Mar-2017 15:24:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -72,8 +72,10 @@ handles.selection.mode = 'point';
 handles.drawing.active = false;
 handles.localMean.use = false;
 handles.localMean.type = 1;
-handles.localMean.size = 5;
+handles.localMean.size = 3;
 set(handles.setFiltSizEd, 'String', num2str(handles.localMean.size));
+handles.alignType = 'rigid';
+set(handles.setAlignMtdPop, 'Value', 2);
 
 % Get unique id
 if ispc
@@ -181,7 +183,7 @@ function loadVarBtn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% If expInfo exists, clearBtn it
+% If expInfo exists, resetBtn it
 if isfield(handles, 'expInfo')
     handles = rmfield(handles, 'expInfo');
 end
@@ -228,7 +230,7 @@ function loadFileBtn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% If expInfo exists, clearBtn it
+% If expInfo exists, resetBtn it
 if isfield(handles, 'expInfo')
     handles = rmfield(handles, 'expInfo');
 end
@@ -329,7 +331,7 @@ guidata(hObject, handles);
 
 
 % --- Executes on slider movement.
-function stackSlider_Callback(hObject, ~, handles)
+function stackSlider_Callback(hObject, eventdata, handles)
 % hObject    handle to stackSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -366,7 +368,7 @@ catch ME
 end
 
 % --- Executes during object creation, after setting all properties.
-function stackSlider_CreateFcn(hObject, eventdata, ~)
+function stackSlider_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to stackSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -386,14 +388,16 @@ handles.stackSliderListener = addlistener(hObject, ...
 guidata(hObject, handles);
 
 
-% --- Executes on button press in clearBtn.
-function clearBtn_Callback(hObject, eventdata, handles)
-% hObject    handle to clearBtn (see GCBO)
+% --- Executes on button press in resetBtn.
+function resetBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to resetBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
 % Update display
+handles.stackImg = handles.stackOrig;
+set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
 handles = updateGui(handles);
 
 guidata(hObject, handles);
@@ -567,12 +571,16 @@ handles = guidata(hObject);
 
 % Copy current stack to template
 handles.stackTmpl = handles.stackImg;
-handles.templExpName = handles.expInfo.expName;
+try
+    handles.templExpName = handles.expInfo.expName;
+catch ME
+    handles.templExpName = '';
+end
 
 % Show current image
 axes(handles.tmplAx);
 handles.tmpl = imagesc(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), handles.stackCLims);
-colormap(handles.tmplAx, 'hsv');
+colormap(handles.tmplAx, colormap(handles.mainAx));
 
 % Update display
 handles = updateGui(handles);
@@ -619,43 +627,35 @@ if ~isfield(handles, 'tmpl')
 end
 
 % Use current slice
-mipImg = handles.stackOrig(:, :, handles.sliceIdx, handles.stackIdx);
-mipTmpl = handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx);
+moving = handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx);
+fixed = handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx);
 
-% Smooth images
-mipImg = imgaussfilt(mipImg, 2);
-mipTmpl = imgaussfilt(mipTmpl, 2);
+% Initialize optimizer
+[optimizer, metric] = imregconfig('monomodal');
 
-% Threshold noise
-th = 100;  % Maybe allow the user to change it
-mipImg(mipImg < th) = 0;
-mipTmpl(mipTmpl < th) = 0;
+% Find transform to register to template
+method = handles.alignType;
+tform = imregtform(moving, fixed, method, optimizer, metric);
 
-% Normalize images
-mipImg = mipImg / max(mipImg(:));
-mipTmpl = mipTmpl / max(mipTmpl(:));
+%%%%%%%%%%%%%%% Allow user to select type of registration
 
-% Show the results
+
+% Warp the image according to the transform
+movingReg = imwarp(moving, tform, 'OutputView', imref2d(size(moving)), 'Interp', 'cubic');
+
+% Show before and after
 f3 = figure(3);
-hold on;
-subplot(1, 2, 1, 'Parent', f3); imagesc(mipTmpl);
-subplot(1, 2, 2, 'Parent', f3); imagesc(mipImg); 
-
-% Find and show the centroids
-propImg = regionprops(ones(size(mipImg)), mipImg, 'WeightedCentroid');
-propTmpl = regionprops(ones(size(mipTmpl)), mipTmpl, 'WeightedCentroid');
-ctrImg = propImg.WeightedCentroid;
-ctrTmpl = propTmpl.WeightedCentroid;
-subplot(1, 2, 1, 'Parent', f3); imagesc(mipTmpl);
-line([ctrTmpl(1) - 1, ctrTmpl(1) + 1], [ctrTmpl(2), ctrTmpl(2)], 'Color', 'r');
-line([ctrTmpl(1), ctrTmpl(1)], [ctrTmpl(2) - 1, ctrTmpl(2) + 1], 'Color', 'r');
-subplot(1, 2, 2, 'Parent', f3); imagesc(mipImg); 
-line([ctrImg(1) - 1, ctrImg(1) + 1], [ctrImg(2), ctrImg(2)], 'Color', 'r');
-line([ctrImg(1), ctrImg(1)], [ctrImg(2) - 1, ctrImg(2) + 1], 'Color', 'r');
-hold off;
-
-% Find and show main axes
-
+subplot(1, 2, 1);
+imshowpair(fixed, moving, 'Scaling', 'joint');
+title('Before');
+subplot(1, 2, 2);
+imshowpair(fixed, movingReg, 'Scaling', 'joint');
+title('After');
+set(gcf, 'NextPlot', 'add');
+axes;
+h = title(['Results of alignment using: ', handles.alignType]);
+set(gca, 'Visible', 'off');
+set(h, 'Visible', 'on');
 
 % Ask user to proceed
 if ~strcmp('Yes', questdlg('Proceed with alignment?'))
@@ -663,17 +663,97 @@ if ~strcmp('Yes', questdlg('Proceed with alignment?'))
     return
 end
 
-% Move the current stack to match the tamplate
-shift = round(ctrTmpl - ctrImg);
-handles.stackImg = circshift(handles.stackOrig, [shift(2), shift(1), 0, 0]);
+% Align slices for all times
+for idx = 1 : handles.stackNum
+    reg = imwarp(handles.stackImg(:, :, handles.sliceIdx, idx), ...
+                 tform, ...
+                 'OutputView', imref2d(size(moving)), ...
+                 'Interp', 'cubic');
+    handles.stackImg(:, :, handles.sliceIdx, idx) = reg;
+end
+
 
 % Update axes
+% set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
 set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
 
 % Close figure
 close(f3);
 
 guidata(hObject, handles);
+
+
+
+% --- Executes on selection change in setAlignMtdPop.
+function setAlignMtdPop_Callback(hObject, eventdata, handles)
+% hObject    handle to setAlignMtdPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns setAlignMtdPop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from setAlignMtdPop
+handles = guidata(hObject);
+
+% Choices (defined in guide):
+% 1 - 'translation'
+% 2 - 'rigid'
+% 3 - 'similarity'
+% 4 - 'affine'
+content = cellstr(get(hObject, 'String'));
+handles.alignType = content{get(hObject, 'Value')};
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setAlignMtdPop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setAlignMtdPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+
+% --- Executes on button press in incImgZBtn.
+function incImgZBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to incImgZBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+handles.stackImg = circshift(handles.stackImg, [0, 0, 1, 0]);
+
+% Update axes
+set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in decImgZBtn.
+function decImgZBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to decImgZBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+handles.stackImg = circshift(handles.stackImg, [0, 0, -1, 0]);
+
+% Update axes
+set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+
+guidata(hObject, handles);
+
+
+
 
 
 
@@ -842,6 +922,7 @@ end
 % Change the colormap of the main axis
 try
     colormap(handles.mainAx, map);
+    colormap(handles.tmplAx, map);
 catch ME
 end
 
@@ -1188,6 +1269,3 @@ end
 assignin('base', name, handles.stackImg);
 
 guidata(hObject, handles);
-
-
-
