@@ -98,6 +98,13 @@ handles.cmaps = {'parula', 'hsv', 'hot', 'gray', 'bone', 'copper', 'pink', ...
                  'prism', 'cool', 'autumn', 'spring', 'winter', 'summer'};
 
              
+% Add copyright info
+uicontrol('parent', handles.mainGui, ...
+         'style', 'text', ...
+         'string', ['Lymph4D ', char(169), '2017 - Andrea Vaccari'], ...
+         'units', 'normalized', ...
+         'position', [0.85, 0.0, 0.15, 0.025]);
+             
 % Update handles structure
 guidata(hObject, handles);
 
@@ -845,12 +852,27 @@ switch handles.selection.mode
                                                       startPos(2, :));
                         handles.drawing.line.setColor('black');
                         handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles.mainGui));
+                        
+                        % If there is a template, create a cloned line for
+                        % comparison
+                        if isfield(handles, 'tmpl')
+                            handles.drawing.lineTmpl = imline(handles.tmplAx, ...
+                                                              startPos(1, :), ...
+                                                              startPos(2, :));
+                            handles.drawing.lineTmpl.setColor('black');
+                        end
+                        
+                        % Push data to gui before calling analyzeLine
+                        guidata(hObject, handles);
                         analyzeLine(startPos', handles.mainGui);
                     end
                 end
             case 'open'
                 handles.drawing.active = false;
                 handles.drawing.line.delete();
+                if isfield(handles, 'tmpl')
+                    handles.drawing.lineTmpl.delete();
+                end
                 try
                     close(handles.figLine);
                 catch ME
