@@ -644,9 +644,6 @@ fixed = handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx);
 method = handles.alignType;
 tform = imregtform(moving, fixed, method, optimizer, metric);
 
-%%%%%%%%%%%%%%% Allow user to select type of registration
-
-
 % Warp the image according to the transform
 movingReg = imwarp(moving, tform, 'OutputView', imref2d(size(moving)), 'Interp', 'cubic');
 
@@ -1037,6 +1034,9 @@ if isequal(file, 0) || isequal(dir, 0)
     return
 end
 
+% Notify user that saving is ongoing
+h = msgbox('Exporting to Tiff...');
+
 if strcmp(export, 'Stack at Time')
     % Extract the current time stack
     data = handles.stackOrig(:, :, :, handles.stackIdx);
@@ -1067,7 +1067,13 @@ else
     end
 end
     
-    
+% Remove notification
+try
+    delete(h);
+catch ME
+end
+
+
 guidata(hObject, handles);
 
 
@@ -1126,6 +1132,9 @@ if isequal(file, 0) || isequal(dir, 0)
     return
 end
 
+% Notify user that saving is ongoing
+h = msgbox('Exporting to Tiff...');
+
 if strcmp(export, 'Stack at Time')
     % Extract the current time slice
     data = handles.stackImg(:, :, :, handles.stackIdx);
@@ -1154,6 +1163,12 @@ else
                 fullfile(dir, file), ...
                 'WriteMode', 'append');
     end
+end
+
+% Remove notification
+try
+    delete(h);
+catch ME
 end
 
 guidata(hObject, handles);
@@ -1193,12 +1208,21 @@ fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
 if isequal(file, 0) || isequal(dir, 0)
     return
 end
-                                    
+
+% Notify user that saving is ongoing
+h = msgbox('Exporting to file...');
+
 % Save to file
 handles.lastSaveDir = dir;
 save(fullfile(dir, file), ...
      '-struct', 'handles', 'stackOrig');
  
+% Remove notification
+try
+    delete(h);
+catch ME
+end
+
 guidata(hObject, handles);
 
 
@@ -1236,12 +1260,21 @@ fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
 if isequal(file, 0) || isequal(dir, 0)
     return
 end
-                                    
+     
+% Notify user that saving is ongoing
+h = msgbox('Exporting to file...');
+
 % Save to file
 handles.lastSaveDir = dir;
 save(fullfile(dir, file), ...
      '-struct', 'handles', 'stackImg');
 
+ % Remove notification
+ try
+     delete(h);
+ catch ME
+ end
+ 
 guidata(hObject, handles);
 
 

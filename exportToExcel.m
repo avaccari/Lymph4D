@@ -39,5 +39,7 @@ xlswrite(fullfile(dir, file), ...
 end
 
 % Remove notification
-delete(h);
-
+try
+    delete(h);
+catch ME
+end

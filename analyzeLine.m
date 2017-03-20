@@ -115,7 +115,7 @@ if isfield(handles, 'tmpl')
     txt = {'Evolution over time of cross section (Blue \rightarrow Red)', ...
            ['Slice: ', mat2str(handles.sliceIdx), note]};
     title(txt);
-    ylabel('Amplitude');
+    ylabel('Amplitude (Template)');
     txt = strcat('Pixels along cross section:', ...
                   mat2str(round(pos(1, :))), ...
                   '\rightarrow', ...
@@ -151,7 +151,7 @@ if isfield(handles, 'tmpl')
     txt = {'Evolution over time of each pixel in the cross section (Blue \rightarrow Red)', ...
            ['Slice: ', mat2str(handles.sliceIdx), note]};
     title(txt);
-    ylabel('Amplitude');
+    ylabel('Amplitude (Template)');
     xlabel('Time');
 end
 

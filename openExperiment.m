@@ -83,6 +83,9 @@ if isfield(handles.expInfo.full, 'SeriesDescription')
     handles.expInfo.expNameExp = expInfo;
 end
 
+% Notify user that saving is ongoing
+h = msgbox('Loading experiment...');
+
 % Load and store the stack
 for st = 1 : stackNum
     for sl = 1 : sliceMax
@@ -93,6 +96,12 @@ for st = 1 : stackNum
         end
         img(:, :, sl, st) = dicomread(fil);
     end
+end
+
+% Remove notification
+try
+    delete(h);
+catch ME
 end
 
 % Store original stack
