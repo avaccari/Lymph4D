@@ -8,6 +8,7 @@ handles = updateTxtPosIdx(handles);
 handles = updateTxtExpName(handles);
 handles = updateTxtTemplExpName(handles);
 
+
 % --- Update index indicator
 function handles = updateTxtSliceIdx(handles)
 try

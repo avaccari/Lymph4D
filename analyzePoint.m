@@ -11,3 +11,4 @@ txt = strcat('Evolution over time of selected points (Slice:', ...
 title(txt);
 ylabel('Amplitude');
 xlabel('Time');
+

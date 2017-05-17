@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 12-Mar-2017 15:24:33
+% Last Modified by GUIDE v2.5 17-May-2017 11:12:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,16 +78,7 @@ handles.alignType = 'rigid';
 set(handles.setAlignMtdPop, 'Value', 2);
 
 % Get unique id
-if ispc
-    [~, r] = system('wmic bios get serialnumber /value');
-    r = string(regexp(r, '.*=([0-9A-Z]*).*', 'tokens', 'once'));
-    handles.machineId = strcat(r, '-');
-elseif ismac
-    [~, r] = system('ioreg -l | grep "IOPlatformSerialNumber" | awk -F''"'' ''{print $4}''');
-    handles.machineId = strcat(r, '-');
-else
-    handles.machineId = '';
-end    
+handles.machineId = getUniqueId();
 handles.lastExpFile = char(strcat(handles.machineId, 'lastExp.mat'));
 
 % Create a list of available colormaps
@@ -96,6 +87,10 @@ handles.lastExpFile = char(strcat(handles.machineId, 'lastExp.mat'));
 handles.cmaps = {'parula', 'hsv', 'hot', 'gray', 'bone', 'copper', 'pink', ...
                  'white', 'flag', 'lines', 'colorcube', 'vga', 'jet', ...
                  'prism', 'cool', 'autumn', 'spring', 'winter', 'summer'};
+
+% Define single-sided percentage to be considered outliers
+handles.outliers = 1.;
+handles.cOut = [handles.outliers, 100 - handles.outliers];
 
              
 % Add copyright info
@@ -145,8 +140,13 @@ path = uigetdir();
 handles = openExperiment(handles, path);
 
 % Store path and experiment info for fast access
-save(fullfile(handles.storePath, handles.lastExpFile), 'path');
-
+file = fullfile(handles.storePath, handles.lastExpFile);
+if exist(file, 'file')
+    save(file, 'path', '-append');
+else
+    save(file, 'path');
+end
+    
 % Configure the stack for visualization
 handles = configStack(handles);
 
@@ -375,7 +375,7 @@ catch ME
 end
 
 % --- Executes during object creation, after setting all properties.
-function stackSlider_CreateFcn(hObject, eventdata, handles)
+function stackSlider_CreateFcn(hObject, ~, handles)
 % hObject    handle to stackSlider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -402,10 +402,7 @@ function resetBtn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% Update display
-handles.stackImg = handles.stackOrig;
-set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-handles = updateGui(handles);
+handles = configStack(handles);
 
 guidata(hObject, handles);
 
@@ -568,6 +565,128 @@ end
 
 
 
+% --- Executes on button press in saveLineBtn.
+function saveLineBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to saveLineBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+if isfield(handles.drawing, 'line') && isvalid(handles.drawing.line)
+    prompt = 'Enter name for this line:';
+    var = inputdlg(prompt, 'Enter name');
+
+    % Check if the answer is valid. If not bail.
+    if isempty(var)
+        return
+    elseif isempty(var{1})
+        return
+    end
+    
+    var = ['line_', matlab.lang.makeValidName(var{1})];
+    eval([var '= handles.drawing.line.getPosition();']);    
+    file = fullfile(handles.storePath, handles.lastExpFile);
+    
+    if exist(file, 'file')
+        save(file, var, '-append');
+    else
+        save(file, var);
+    end
+end
+
+
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in loadLineBtn.
+function loadLineBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to loadLineBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+try
+    file = fullfile(handles.storePath, handles.lastExpFile);
+    rexp = '^line_*';
+    vars = who('-file', file, '-regexp', rexp); 
+catch ME
+    msgbox('Cannot locate file containing latest line information');
+    return
+end
+
+% If more than one line exists, ask user to pick the one they want
+if length(vars) > 1
+    [s, v] = listdlg('PromptString', 'Select the desired line:', ...
+                     'SelectionMode', 'single', ...
+                     'ListString', vars);
+    
+    % If error, bail
+    if v == 0
+        msgbox('There was an error during the line selection process.');
+        return
+    end
+    
+    line = vars{s};
+else
+    line = vars{1};
+end
+
+load(file, line);
+
+handles = createLine(eval(line)', handles);
+
+handles.selection.mode = 'line';
+
+handles.selLineRbtn.Value = 1.0;
+
+guidata(hObject, handles);
+
+
+
+
+% --- Executes on button press in delLineBtn.
+function delLineBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to delLineBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+try
+    file = fullfile(handles.storePath, handles.lastExpFile);
+    rexp = '^line_*';
+    vars = who('-file', file, '-regexp', rexp); 
+catch ME
+    msgbox('Cannot locate file containing latest line information');
+    return
+end
+
+% Ask user to pick the ones they want to delete
+[s, v] = listdlg('PromptString', 'Select line(s) to delete:', ...
+                 'SelectionMode', 'multiple', ...
+                 'ListString', vars);
+
+% If error, bail
+if v == 0
+    msgbox('There was an error during the line selection process.');
+    return
+end
+
+% Short of making your own MEX, there is no quick way to remove variables
+% from a .mat file so we load, delete, and save.
+mat = load(file);
+
+for i = 1:length(s)
+    mat = rmfield(mat, vars{s(i)});
+end
+
+save(file, '-struct', 'mat');
+
+guidata(hObject, handles);
+
+
+
+
 
 % --- Executes on button press in setTempBtn.
 function setTempBtn_Callback(hObject, eventdata, handles)
@@ -577,7 +696,10 @@ function setTempBtn_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Copy current stack to template
+handles.stackTmplOrig = handles.stackImg;
 handles.stackTmpl = handles.stackImg;
+handles.tmplCLims = handles.stackCLims;
+
 try
     handles.templExpName = handles.expInfo.expName;
 catch ME
@@ -586,8 +708,14 @@ end
 
 % Show current image
 axes(handles.tmplAx);
-handles.tmpl = imagesc(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), handles.stackCLims);
+handles.tmpl = imagesc(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), handles.tmplCLims);
 colormap(handles.tmplAx, colormap(handles.mainAx));
+pos = get(handles.tmplAx, 'Position');
+handles.tmplCBar = colorbar('location', 'south', ...
+                            'FontSize', 8, ...
+                            'AxisLocation', 'in', ...
+                            'Color', [0.5, 0.5, 0.5], ...
+                            'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
 
 % Update display
 handles = updateGui(handles);
@@ -611,8 +739,11 @@ end
 % Clear axes
 cla(handles.tmplAx);
 
+% Delete colorbar
+delete(handles.tmplCBar);
+
 % Remove from handles
-handles = rmfield(handles, {'stackTmpl', 'tmpl', 'templExpName'});
+handles = rmfield(handles, {'stackTmplOrig', 'stackTmpl', 'tmpl', 'templExpName'});
 
 % Update display
 handles = updateGui(handles);
@@ -667,15 +798,19 @@ if ~strcmp('Yes', questdlg('Proceed with alignment?'))
     return
 end
 
-% Align slices for all times
-for idx = 1 : handles.stackNum
-    reg = imwarp(handles.stackImg(:, :, handles.sliceIdx, idx), ...
-                 tform, ...
-                 'OutputView', imref2d(size(moving)), ...
-                 'Interp', 'cubic');
-    handles.stackImg(:, :, handles.sliceIdx, idx) = reg;
+% Align the 4D cubes
+for sliceIdx = 1 : handles.sliceNum
+    for stackIdx = 1 : handles.stackNum
+        try
+            reg = imwarp(handles.stackImg(:, :, sliceIdx, stackIdx), ...
+                         tform, ...
+                         'OutputView', imref2d(size(moving)), ...
+                         'Interp', 'cubic');
+            handles.stackImg(:, :, sliceIdx, stackIdx) = reg;
+        catch ME
+        end
+    end
 end
-
 
 % Update axes
 % set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
@@ -758,6 +893,115 @@ guidata(hObject, handles);
 
 
 
+% --- Executes on button press in rmBaselnBtn.
+function rmBaselnBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to rmBaselnBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Notify user that saving is ongoing
+h = msgbox('Removing baseline...');
+
+% Use first temporal stack as baseline
+baseline = handles.stackImg(:, :, :, 1);
+for stk = 1:handles.stackNum
+    handles.stackImg(:, :, :, stk) = handles.stackImg(:, :, :, stk) - baseline;
+end
+
+% Change the colorscale to improve contrast
+q = prctile(handles.stackImg(:), handles.cOut);
+handles.stackCLims = [q(1), q(2)];
+set(handles.mainAx, 'CLim', handles.stackCLims);
+
+% Update the image
+set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+
+% If the template exists ask if it should be processed as well
+if isfield(handles, 'tmpl')
+    answ = questdlg('Process also the template (with its own baseline)?', ...
+                    'Process template', ...
+                    'Yes', 'No', 'Yes');
+    switch answ
+        case 'Yes'
+            baseline = handles.stackTmpl(:, :, :, 1);
+            for stk = 1:handles.stackNum
+                handles.stackTmpl(:, :, :, stk) = handles.stackTmpl(:, :, :, stk) - baseline;
+            end
+            
+            % Change the colorscale to improve contrast
+            q = prctile(handles.stackTmpl(:), handles.cOut);
+            handles.tmplCLims = [q(1), q(2)];
+            set(handles.tmplAx, 'CLim', handles.tmplCLims);
+
+            % Update the image
+            set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+            
+        case 'No'
+    end
+end
+
+
+% Update array indexing
+handles = updateIdx(handles);
+
+% Update display
+handles = updateGui(handles);
+
+% Remove notification
+try
+    delete(h);
+catch ME
+end
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in eqScalesBtn.
+function eqScalesBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to eqScalesBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Evaluate the data ranges within the two images
+q = prctile(handles.stackImg(:), handles.cOut);
+if isfield(handles, 'tmpl')
+    qt = prctile(handles.stackTmpl(:), handles.cOut);
+    q(1) = min(q(1), qt(1));
+    q(2) = max(q(2), qt(2));
+    handles.tmplCLims = q;
+    set(handles.tmplAx, 'CLim', handles.tmplCLims);
+end
+handles.stackCLims = q;
+set(handles.mainAx, 'CLim', handles.stackCLims);
+
+
+% Update array indexing
+handles = updateIdx(handles);
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -813,6 +1057,45 @@ handles.buttonType = get(hObject, 'SelectionType');
 guidata(hObject, handles);
 
 
+% --- Create the analysis lines
+function handles = createLine(startPos, handles)
+handles.drawing.active = true;
+handles.drawing.line = imline(handles.mainAx, ...
+                              startPos(1, :), ...
+                              startPos(2, :));
+handles.drawing.line.setColor('black');
+handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles.mainGui));
+handles.drawing.textS = text(startPos(1, 1) - 5, startPos(1, 2)- 5, 'S', 'Color', [0.5, 0.5, 0.5]);
+handles.drawing.textE = text(startPos(2, 1) + 3, startPos(2, 2)+ 3, 'E', 'Color', [0.5, 0.5, 0.5]);
+
+% If there is a template, create a cloned line for
+% comparison
+if isfield(handles, 'tmpl')
+    handles.drawing.lineTmpl = imline(handles.tmplAx, ...
+                                      startPos(1, :), ...
+                                      startPos(2, :));
+    handles.drawing.lineTmpl.setColor('black');
+end
+
+% Push data to gui before calling analyzeLine
+guidata(handles.mainGui, handles);
+handles = analyzeLine(startPos', handles.mainGui);
+guidata(handles.mainGui, handles);
+
+% --- Destroy the analysis lines
+function handles = destroyLines(handles)
+handles.drawing.active = false;
+handles.drawing.line.delete();
+handles.drawing.textS.delete();
+handles.drawing.textE.delete();
+if isfield(handles, 'tmpl')
+    handles.drawing.lineTmpl.delete();
+end
+try
+    close(handles.figLine);
+catch ME
+end
+
 
 % --- Executes on mouse press over figure background, over a disabled or
 % --- inactive control, or over an axes background.
@@ -841,39 +1124,13 @@ switch handles.selection.mode
                                'in real time in a popup figure.', ...
                                'To remove the line, double click on it.'};
                         uiwait(msgbox(txt));
-                        handles.drawing.active = true;
                         startPos = [handles.posIdx(1), handles.posIdx(1) + 10; ...
                                     handles.posIdx(2), handles.posIdx(2) + 10];
-                        handles.drawing.line = imline(handles.mainAx, ...
-                                                      startPos(1, :), ...
-                                                      startPos(2, :));
-                        handles.drawing.line.setColor('black');
-                        handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles.mainGui));
-                        
-                        % If there is a template, create a cloned line for
-                        % comparison
-                        if isfield(handles, 'tmpl')
-                            handles.drawing.lineTmpl = imline(handles.tmplAx, ...
-                                                              startPos(1, :), ...
-                                                              startPos(2, :));
-                            handles.drawing.lineTmpl.setColor('black');
-                        end
-                        
-                        % Push data to gui before calling analyzeLine
-                        guidata(hObject, handles);
-                        analyzeLine(startPos', handles.mainGui);
+                        handles = createLine(startPos, handles);
                     end
                 end
             case 'open'
-                handles.drawing.active = false;
-                handles.drawing.line.delete();
-                if isfield(handles, 'tmpl')
-                    handles.drawing.lineTmpl.delete();
-                end
-                try
-                    close(handles.figLine);
-                catch ME
-                end
+                handles = destroyLines(handles);
         end
     case 'rectangle'
         switch handles.buttonType
@@ -886,6 +1143,7 @@ switch handles.selection.mode
             case 'open'                
         end
 end
+
 
 guidata(hObject, handles);
 
@@ -946,6 +1204,38 @@ catch ME
 end
 
 guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function mOptSaturation_Callback(hObject, eventdata, handles)
+% hObject    handle to mOptSaturation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Check status, toggle and modify range
+if strcmp(get(hObject, 'Checked'), 'on')
+    set(hObject, 'Checked', 'off');
+    handles.cOut = [0, 100];
+else
+    set(hObject, 'Checked', 'on');
+    handles.cOut = [handles.outliers, 100 - handles.outliers];
+end
+
+% Update color limits on image and template
+q = prctile(handles.stackImg(:), handles.cOut);
+handles.stackCLims = q;
+set(handles.mainAx, 'CLim', handles.stackCLims);
+if isfield(handles, 'tmpl')
+    q = prctile(handles.stackTmpl(:), handles.cOut);
+    handles.tmplCLims = q;
+    set(handles.tmplAx, 'CLim', handles.tmplCLims);
+end
+
+guidata(hObject, handles);
+
+
+
 
 
 
@@ -1324,3 +1614,99 @@ end
 assignin('base', name, handles.stackImg);
 
 guidata(hObject, handles);
+
+function d = blockSVD(block)
+[gx, gy] = imgradientxy(block.data);
+G = [gx(:), gy(:)];
+[~, S, V] = svd(G);
+a = atan2d(V(2, 1), V(1, 1));
+r = (S(1, 1) - S(2, 2)) / (S(1, 1) + S(2, 2));
+d = complex(a, r);
+d = repmat(d, block.blockSize);
+
+function d = slideSVD(block)
+[gx, gy] = imgradientxy(block);
+G = [gx(:), gy(:)];
+[~, S, V] = svd(G);
+a = atan2d(V(2, 1), V(1, 1));
+r = (S(1, 1) - S(2, 2)) / (S(1, 1) + S(2, 2));
+d = complex(a, r);
+
+function d = slideSVD3D(block)
+[gx, gy, gz] = imgradientxy(block);
+G = [gx(:), gy(:), gz(:)];
+[~, S, V] = svd(G);
+a = V(:, 1);
+r = (S(1, 1) - sqrt(S(2, 2)^2 + S(3, 3)^2)) / (S(1, 1) + S(2, 2) + S(3, 3));
+d = [a, r];
+
+% --- Executes on button press in gradientBtn.
+function gradientBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to gradientBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+% Create the slice-by-slice gradient stack
+% smooth = imgaussfilt(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), 1);
+smooth = handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx);
+% [gx, gy] = gradient(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+% [gm, gd] = imgradient(smooth);
+% figure;imagesc(imgaussfilt(gm,0.1));
+% figure;imagesc(imgaussfilt(gd,0.1));
+
+% G = nlfilter(squeeze(handles.stackImg(:, :, handles.sliceIdx, :)), ...
+%              [3, 3, 3], ...
+%              @slideSVD3D);
+
+% return
+R=[];
+Gave = double(zeros(size(handles.stackImg(:,:,handles.sliceIdx,1))));
+iGave = Gave;
+green = Gave;
+LR = Gave;
+SI = Gave;
+
+for sz = 3
+    for t = 2:handles.stackNum
+        smooth = handles.stackImg(:, :, handles.sliceIdx, t);
+        G = nlfilter(smooth, [sz, sz], @slideSVD) ;         
+%         G = blockproc(smooth, [sz, sz], @blockSVD, ...
+%                       'BorderSize', [1, 1], ...
+%                       'PadPartialBlocks', true, ...
+%                       'PadMethod', 'replicate', ...
+%                       'UseParallel', false);
+        
+        % Extract directions and predominance
+        rG = real(G);
+        iG = imag(G);
+
+        % Show individual frames
+        figure(10); subplot(3, 6, t); imagesc(rG);
+        figure(20); subplot(3, 6, t); imagesc(iG);
+        
+        % Calculate and show average gradient direction
+        Gave = Gave + rG;       
+        figure(11); imagesc(Gave/t);
+        
+        % Calculate and show average direction weighted by intensity
+        LR = LR + abs(cos(deg2rad(rG))) .* smooth;
+        SI = SI + abs(sin(deg2rad(rG))) .* smooth;
+        norm = sum(handles.stackImg(:, :, handles.sliceIdx, 2:t), 4);
+        map = cat(3, LR./norm, green, SI./norm);
+        figure(12); imagesc(map);
+        
+        
+        iGq = iG .* iG;
+        prob = 4 * (sz - 1) * iG .* (((1 - iGq).^(sz - 2)) ./ (1 + iGq).^sz);
+        iGave = iGave + iG;
+        figure(21); imagesc(iGave/t);
+        R=[R;iG(:)];
+        figure(30); histogram(R, linspace(0,1,100), 'Normalization', 'pdf');
+        drawnow
+    end         
+end
+
+guidata(hObject, handles);
+
+

@@ -1,8 +1,14 @@
 % Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
 
 % --- Analyze the data when a line is traced on the image
-function analyzeLine(pos, hObject)
+function handles = analyzeLine(pos, hObject)
 handles = guidata(hObject);
+
+% Move text to new position
+% TODO: make move fancy so that the letters are always opposed to the line
+% direction
+set(handles.drawing.textS, 'position', pos(1, :) - [5, 5]);
+set(handles.drawing.textE, 'position', pos(2, :) + [3, 3]);
 
 % If there is a template line, move it
 if isfield(handles, 'tmpl')

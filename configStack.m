@@ -12,16 +12,15 @@ end
 img = handles.stackOrig;
 [~, ~, handles.sliceNum, handles.stackNum] = size(img);
 
-% Evaluate stack range
-imgMin = min(img(:));
-imgMax = max(img(:));
-clims = [imgMin, imgMax];
-handles.stackCLims = clims;
+% Evaluate stack range (remove 1% outliers)
+q = prctile(img(:), handles.cOut);
+handles.stackCLims = [q(1), q(2)];
 
 % Normalize stack to [0, 1]
 % img = (img - imgMin) / (imgMax - imgMin);
 
-% If there is a template pad both to the max size
+% If there is a template pad both to the max size (should probably cut to
+% minimum size to improve comparison)
 if isfield(handles, 'tmpl')
     padSize = max(size(img), size(handles.stackTmpl));
     handles.sliceNum = padSize(3);
@@ -29,18 +28,43 @@ if isfield(handles, 'tmpl')
     img = padarray(img, padSize - size(img), 'post');
     handles.stackTmpl = padarray(handles.stackTmpl, padSize - size(handles.stackTmpl), 'post');
     axes(handles.tmplAx);
-    handles.tmpl = imagesc(handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx), clims);
+    handles.tmpl = imagesc(handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx), handles.tmplCLims);
+    pos = get(handles.tmplAx, 'Position');
+    handles.tmplCBar = colorbar('location', 'south', ...
+                                'FontSize', 8, ...
+                                'AxisLocation', 'in', ...
+                                'Color', [0.5, 0.5, 0.5], ...
+                                'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
 end
     
 % Assign to array
 handles.stackImg = img;
 
-% Display image
-axes(handles.mainAx);
-handles.img = imagesc(img(:, :, 1, 1), clims);
+% Reset sliders
 handles.stackIdx = 1;
 handles.sliceIdx = 1;
-
-% Zero the sliders
 set(handles.stackSlider, 'Value', 0);
 set(handles.sliceSlider, 'Value', 0);
+
+% Display image
+axes(handles.mainAx);
+pos = get(handles.mainAx, 'Position');
+handles.img = imagesc(img(:, :, handles.sliceIdx, handles.stackIdx), handles.stackCLims);
+handles.imgCBar = colorbar('location', 'south', ...
+                           'FontSize', 8, ...
+                           'AxisLocation', 'in', ...
+                           'Color', [0.5, 0.5, 0.5], ...
+                           'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
+
+% If template reset to origin
+if isfield(handles, 'tmpl')
+    handles.stackTmpl = handles.stackTmplOrig;
+    
+    % Evaluate stack range (remove 1% outliers)
+    q = prctile(handles.stackTmpl(:), handles.cOut);
+    handles.tmplCLims = q;
+    set(handles.tmplAx, 'CLim', handles.tmplCLims);
+    set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+end
+                       
+                       
