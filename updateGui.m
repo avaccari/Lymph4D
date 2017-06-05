@@ -50,7 +50,7 @@ set(handles.txtExpName, 'String', txt);
 function handles = updateTxtTemplExpName(handles)
 try
     txt = strcat('Experiment:', ...
-                 handles.templExpName);
+                 handles.tmplInfo.expName);
 catch ME
     txt = 'Experiment:';
 end

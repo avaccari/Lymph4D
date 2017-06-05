@@ -9,6 +9,7 @@ if ~isfield(handles, 'stackOrig')
 return
 end
 
+% Extract stack size
 img = handles.stackOrig;
 [~, ~, handles.sliceNum, handles.stackNum] = size(img);
 
@@ -66,5 +67,4 @@ if isfield(handles, 'tmpl')
     set(handles.tmplAx, 'CLim', handles.tmplCLims);
     set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
 end
-                       
-                       
+                      

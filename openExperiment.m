@@ -74,14 +74,8 @@ img1 = dicomread(fil);
 img = zeros([size(img1), sliceMax, stackNum]);
 img(:, :, sliceIdx, stackIdx) = img1;
 
-% Read the structure containing the file info (only the first file)
-handles.expInfo.full = dicominfo(fil);
-if isfield(handles.expInfo.full, 'SeriesDescription')
-    handles.expInfo.expName = handles.expInfo.full.SeriesDescription;
-    expInfo = regexprep(handles.expInfo.full.SeriesDescription, '( |-)+', '_');
-    expInfo = regexprep(expInfo, '_+', '_');
-    handles.expInfo.expNameExp = expInfo;
-end
+% Preallocate the structure containing the files info
+handles.expInfo.full = repmat(dicominfo(fil), sliceMax, stackNum);
 
 % Notify user that saving is ongoing
 h = msgbox('Loading experiment...');
@@ -95,6 +89,7 @@ for st = 1 : stackNum
             return
         end
         img(:, :, sl, st) = dicomread(fil);
+        handles.expInfo.full(sl, st) = dicominfo(fil);
     end
 end
 
@@ -102,6 +97,17 @@ end
 try
     delete(h);
 catch ME
+end
+
+% Extract basic info from dicom file (use first file)
+info = handles.expInfo.full(1, 1);
+
+% Extract name info
+if isfield(info, 'SeriesDescription')
+    handles.expInfo.expName = info.SeriesDescription;
+    expInfo = regexprep(info.SeriesDescription, '( |-)+', '_');
+    expInfo = regexprep(expInfo, '_+', '_');
+    handles.expInfo.expNameExp = expInfo;
 end
 
 % Store original stack

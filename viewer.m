@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 17-May-2017 11:12:13
+% Last Modified by GUIDE v2.5 30-May-2017 15:13:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -65,6 +65,15 @@ if nargin > 3
     handles = configStack(handles);
 end
 
+% Initialisation of POI Libs
+% Add Java POI Libs to matlab javapath
+javaaddpath('3rdParty/xlwrite/poi_library/poi-3.8-20120326.jar');
+javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-3.8-20120326.jar');
+javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar');
+javaaddpath('3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar');
+javaaddpath('3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar');
+javaaddpath('3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar');
+
 % Initialize some "globals"
 [handles.storePath, ~, ~] = fileparts(mfilename('fullpath'));
 handles.onImage = false;
@@ -94,11 +103,37 @@ handles.cOut = [handles.outliers, 100 - handles.outliers];
 
              
 % Add copyright info
+txt = {'All rights reserved.', ...
+       '', ...
+       'Redistribution and use in source and binary forms, with or without', ...
+       'modification, are permitted provided that the following conditions are', ...
+       'met:', ...
+       '', ...
+       '    * Redistributions of source code must retain the above copyright', ...
+       '      notice, this list of conditions and the following disclaimer.', ...
+       '    * Redistributions in binary form must reproduce the above copyright', ...
+       '      notice, this list of conditions and the following disclaimer in', ...
+       '      the documentation and/or other materials provided with the distribution', ...
+       '', ...
+       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"', ...
+       'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE', ...
+       'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE', ...
+       'ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE', ...
+       'LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR', ...
+       'CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF', ...
+       'SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS', ...
+       'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN', ...
+       'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)', ...
+       'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE', ...
+       'POSSIBILITY OF SUCH DAMAGE.'};
+   
 uicontrol('parent', handles.mainGui, ...
          'style', 'text', ...
          'string', ['Lymph4D ', char(169), '2017 - Andrea Vaccari'], ...
          'units', 'normalized', ...
-         'position', [0.85, 0.0, 0.15, 0.025]);
+         'position', [0.85, 0.0, 0.15, 0.025], ...
+         'enable', 'inactive', ...
+         'ButtonDownFcn', @(src, evt)msgbox(txt, 'Copyright'));
              
 % Update handles structure
 guidata(hObject, handles);
@@ -278,6 +313,20 @@ guidata(hObject, handles);
 
 
 
+% --- Executes on button press in dicomInfoBtn.
+function dicomInfoBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to dicomInfoBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+handles = showImageInfo(handles);
+
+guidata(hObject, handles);
+
+
+
+
 
 % --- Executes on slider movement.
 function sliceSlider_Callback(hObject, eventdata, handles)
@@ -437,30 +486,16 @@ handles.selection.mode = 'line';
 guidata(hObject, handles);
 
 
-% --- Executes on button press in selRectRbtn.
-function selRectRbtn_Callback(hObject, eventdata, handles)
-% hObject    handle to selRectRbtn (see GCBO)
+% --- Executes on button press in selPolyRbtn.
+function selPolyRbtn_Callback(hObject, eventdata, handles)
+% hObject    handle to selPolyRbtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of selRectRbtn
+% Hint: get(hObject,'Value') returns toggle state of selPolyRbtn
 handles = guidata(hObject);
     
-handles.selection.mode = 'rectangle';
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in selCircleRbtn.
-function selCircleRbtn_Callback(hObject, eventdata, handles)
-% hObject    handle to selCircleRbtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of selCircleRbtn
-handles = guidata(hObject);
-    
-handles.selection.mode = 'circle';
+handles.selection.mode = 'polygon';
 
 guidata(hObject, handles);
 
@@ -481,7 +516,7 @@ guidata(hObject, handles);
 
 % Redraw the graph with the new parameters
 if handles.drawing.active
-    analyzeLine(handles.drawing.line.getPosition, handles.mainGui);
+    lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
 end
 
 
@@ -508,7 +543,7 @@ guidata(hObject, handles);
 
 % Redraw the graph with the new parameters
 if handles.drawing.active
-    analyzeLine(handles.drawing.line.getPosition, handles.mainGui);
+    lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
 end
 
 
@@ -544,7 +579,7 @@ guidata(hObject, handles);
 
 % Redraw the graph with the new parameters
 if handles.drawing.active
-    analyzeLine(handles.drawing.line.getPosition, handles.mainGui);
+    lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
 end
 
 
@@ -565,9 +600,9 @@ end
 
 
 
-% --- Executes on button press in saveLineBtn.
-function saveLineBtn_Callback(hObject, eventdata, handles)
-% hObject    handle to saveLineBtn (see GCBO)
+% --- Executes on button press in lineSaveBtn.
+function lineSaveBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to lineSaveBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
@@ -599,9 +634,9 @@ guidata(hObject, handles);
 
 
 
-% --- Executes on button press in loadLineBtn.
-function loadLineBtn_Callback(hObject, eventdata, handles)
-% hObject    handle to loadLineBtn (see GCBO)
+% --- Executes on button press in lineLoadBtn.
+function lineLoadBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to lineLoadBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
@@ -645,9 +680,9 @@ guidata(hObject, handles);
 
 
 
-% --- Executes on button press in delLineBtn.
-function delLineBtn_Callback(hObject, eventdata, handles)
-% hObject    handle to delLineBtn (see GCBO)
+% --- Executes on button press in lineDelBtn.
+function lineDelBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to lineDelBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
@@ -687,6 +722,31 @@ guidata(hObject, handles);
 
 
 
+% --- Executes on button press in polySaveBtn.
+function polySaveBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to polySaveBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in polyLoadBtn.
+function polyLoadBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to polyLoadBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in polyDelBtn.
+function polyDelBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to polyDelBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+
+
+
 
 % --- Executes on button press in setTempBtn.
 function setTempBtn_Callback(hObject, eventdata, handles)
@@ -700,11 +760,12 @@ handles.stackTmplOrig = handles.stackImg;
 handles.stackTmpl = handles.stackImg;
 handles.tmplCLims = handles.stackCLims;
 
+% If available, copy experiment info to template
 try
-    handles.templExpName = handles.expInfo.expName;
+    handles.tmplInfo = handles.expInfo;
 catch ME
-    handles.templExpName = '';
 end
+
 
 % Show current image
 axes(handles.tmplAx);
@@ -743,7 +804,10 @@ cla(handles.tmplAx);
 delete(handles.tmplCBar);
 
 % Remove from handles
-handles = rmfield(handles, {'stackTmplOrig', 'stackTmpl', 'tmpl', 'templExpName'});
+handles = rmfield(handles, {'stackTmplOrig', ...
+                            'stackTmpl', ...
+                            'tmpl', ...
+                            'tmplInfo'});
 
 % Update display
 handles = updateGui(handles);
@@ -904,10 +968,7 @@ handles = guidata(hObject);
 h = msgbox('Removing baseline...');
 
 % Use first temporal stack as baseline
-baseline = handles.stackImg(:, :, :, 1);
-for stk = 1:handles.stackNum
-    handles.stackImg(:, :, :, stk) = handles.stackImg(:, :, :, stk) - baseline;
-end
+handles.stackImg = handles.stackImg - repmat(handles.stackImg(:, :, :, 1), 1, 1, 1, handles.stackNum);
 
 % Change the colorscale to improve contrast
 q = prctile(handles.stackImg(:), handles.cOut);
@@ -924,10 +985,7 @@ if isfield(handles, 'tmpl')
                     'Yes', 'No', 'Yes');
     switch answ
         case 'Yes'
-            baseline = handles.stackTmpl(:, :, :, 1);
-            for stk = 1:handles.stackNum
-                handles.stackTmpl(:, :, :, stk) = handles.stackTmpl(:, :, :, stk) - baseline;
-            end
+            handles.stackTmpl = handles.stackTmpl - repmat(handles.stackTmpl(:, :, :, 1), 1, 1, 1, handles.stackNum);
             
             % Change the colorscale to improve contrast
             q = prctile(handles.stackTmpl(:), handles.cOut);
@@ -1057,45 +1115,6 @@ handles.buttonType = get(hObject, 'SelectionType');
 guidata(hObject, handles);
 
 
-% --- Create the analysis lines
-function handles = createLine(startPos, handles)
-handles.drawing.active = true;
-handles.drawing.line = imline(handles.mainAx, ...
-                              startPos(1, :), ...
-                              startPos(2, :));
-handles.drawing.line.setColor('black');
-handles.drawing.line.addNewPositionCallback(@(pos)analyzeLine(pos, handles.mainGui));
-handles.drawing.textS = text(startPos(1, 1) - 5, startPos(1, 2)- 5, 'S', 'Color', [0.5, 0.5, 0.5]);
-handles.drawing.textE = text(startPos(2, 1) + 3, startPos(2, 2)+ 3, 'E', 'Color', [0.5, 0.5, 0.5]);
-
-% If there is a template, create a cloned line for
-% comparison
-if isfield(handles, 'tmpl')
-    handles.drawing.lineTmpl = imline(handles.tmplAx, ...
-                                      startPos(1, :), ...
-                                      startPos(2, :));
-    handles.drawing.lineTmpl.setColor('black');
-end
-
-% Push data to gui before calling analyzeLine
-guidata(handles.mainGui, handles);
-handles = analyzeLine(startPos', handles.mainGui);
-guidata(handles.mainGui, handles);
-
-% --- Destroy the analysis lines
-function handles = destroyLines(handles)
-handles.drawing.active = false;
-handles.drawing.line.delete();
-handles.drawing.textS.delete();
-handles.drawing.textE.delete();
-if isfield(handles, 'tmpl')
-    handles.drawing.lineTmpl.delete();
-end
-try
-    close(handles.figLine);
-catch ME
-end
-
 
 % --- Executes on mouse press over figure background, over a disabled or
 % --- inactive control, or over an axes background.
@@ -1122,25 +1141,32 @@ switch handles.selection.mode
                         txt = {'Drag the ends of the line to select a cross', ...
                                'section. The temporal evolution will be shown', ...
                                'in real time in a popup figure.', ...
-                               'To remove the line, double click on it.'};
+                               'To remove the line, double-click on it.'};
                         uiwait(msgbox(txt));
                         startPos = [handles.posIdx(1), handles.posIdx(1) + 10; ...
                                     handles.posIdx(2), handles.posIdx(2) + 10];
-                        handles = createLine(startPos, handles);
+                        handles = lineCreate(startPos, handles);
                     end
                 end
             case 'open'
-                handles = destroyLines(handles);
+                handles = lineDestroy(handles);
         end
-    case 'rectangle'
+    case 'polygon'
         switch handles.buttonType
             case 'normal'
-            case 'open'                
-        end
-    case 'circle'
-        switch handles.buttonType
-            case 'normal'
-            case 'open'                
+                if handles.onImage
+                    if ~handles.drawing.active
+                        txt = {'Click on the image to add new vertices.', ...
+                               'To close the polygon, click on the first vertex.', ...
+                               'The temporal evolution will be shown in real', ...
+                               'time as the vertices are moved. To remove the', ... 
+                               'polygon, double click on it.'};
+                        uiwait(msgbox(txt));
+                        handles = polyCreate(handles);
+                    end
+                end
+            case 'open'
+                handles = polyDestroy(handles);
         end
 end
 
@@ -1148,16 +1174,6 @@ end
 guidata(hObject, handles);
 
 
-% --- Update array indexing
-function handles = updateIdx(handles)
-try
-    pos = [handles.posIdx(2), ...
-           handles.posIdx(1), ...
-           handles.sliceIdx, ...
-           handles.stackIdx];
-    handles.arrayIdx = num2cell(pos);
-catch ME
-end
 
 
 % --------------------------------------------------------------------
@@ -1615,98 +1631,14 @@ assignin('base', name, handles.stackImg);
 
 guidata(hObject, handles);
 
-function d = blockSVD(block)
-[gx, gy] = imgradientxy(block.data);
-G = [gx(:), gy(:)];
-[~, S, V] = svd(G);
-a = atan2d(V(2, 1), V(1, 1));
-r = (S(1, 1) - S(2, 2)) / (S(1, 1) + S(2, 2));
-d = complex(a, r);
-d = repmat(d, block.blockSize);
 
-function d = slideSVD(block)
-[gx, gy] = imgradientxy(block);
-G = [gx(:), gy(:)];
-[~, S, V] = svd(G);
-a = atan2d(V(2, 1), V(1, 1));
-r = (S(1, 1) - S(2, 2)) / (S(1, 1) + S(2, 2));
-d = complex(a, r);
-
-function d = slideSVD3D(block)
-[gx, gy, gz] = imgradientxy(block);
-G = [gx(:), gy(:), gz(:)];
-[~, S, V] = svd(G);
-a = V(:, 1);
-r = (S(1, 1) - sqrt(S(2, 2)^2 + S(3, 3)^2)) / (S(1, 1) + S(2, 2) + S(3, 3));
-d = [a, r];
-
-% --- Executes on button press in gradientBtn.
-function gradientBtn_Callback(hObject, eventdata, handles)
-% hObject    handle to gradientBtn (see GCBO)
+% --- Executes on button press in directionBtn.
+function directionBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to directionBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% Create the slice-by-slice gradient stack
-% smooth = imgaussfilt(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), 1);
-smooth = handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx);
-% [gx, gy] = gradient(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-% [gm, gd] = imgradient(smooth);
-% figure;imagesc(imgaussfilt(gm,0.1));
-% figure;imagesc(imgaussfilt(gd,0.1));
-
-% G = nlfilter(squeeze(handles.stackImg(:, :, handles.sliceIdx, :)), ...
-%              [3, 3, 3], ...
-%              @slideSVD3D);
-
-% return
-R=[];
-Gave = double(zeros(size(handles.stackImg(:,:,handles.sliceIdx,1))));
-iGave = Gave;
-green = Gave;
-LR = Gave;
-SI = Gave;
-
-for sz = 3
-    for t = 2:handles.stackNum
-        smooth = handles.stackImg(:, :, handles.sliceIdx, t);
-        G = nlfilter(smooth, [sz, sz], @slideSVD) ;         
-%         G = blockproc(smooth, [sz, sz], @blockSVD, ...
-%                       'BorderSize', [1, 1], ...
-%                       'PadPartialBlocks', true, ...
-%                       'PadMethod', 'replicate', ...
-%                       'UseParallel', false);
-        
-        % Extract directions and predominance
-        rG = real(G);
-        iG = imag(G);
-
-        % Show individual frames
-        figure(10); subplot(3, 6, t); imagesc(rG);
-        figure(20); subplot(3, 6, t); imagesc(iG);
-        
-        % Calculate and show average gradient direction
-        Gave = Gave + rG;       
-        figure(11); imagesc(Gave/t);
-        
-        % Calculate and show average direction weighted by intensity
-        LR = LR + abs(cos(deg2rad(rG))) .* smooth;
-        SI = SI + abs(sin(deg2rad(rG))) .* smooth;
-        norm = sum(handles.stackImg(:, :, handles.sliceIdx, 2:t), 4);
-        map = cat(3, LR./norm, green, SI./norm);
-        figure(12); imagesc(map);
-        
-        
-        iGq = iG .* iG;
-        prob = 4 * (sz - 1) * iG .* (((1 - iGq).^(sz - 2)) ./ (1 + iGq).^sz);
-        iGave = iGave + iG;
-        figure(21); imagesc(iGave/t);
-        R=[R;iG(:)];
-        figure(30); histogram(R, linspace(0,1,100), 'Normalization', 'pdf');
-        drawnow
-    end         
-end
+handles = directionMap(handles);
 
 guidata(hObject, handles);
-
-

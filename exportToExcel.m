@@ -31,11 +31,11 @@ end
 
 % For each element in the cell array look for sheet name and data and save
 handles.lastSaveDir = dir;
-warning('off','MATLAB:xlswrite:AddSheet');
+% warning('off','MATLAB:xlswrite:AddSheet');
 for idx = 1 : length(handles.toExcel.sheet)
-xlswrite(fullfile(dir, file), ...
-         handles.toExcel.sheet(idx).data, ...
-         handles.toExcel.sheet(idx).name);
+xlwrite(fullfile(dir, file), ...
+        handles.toExcel.sheet(idx).data, ...
+        handles.toExcel.sheet(idx).name);
 end
 
 % Remove notification

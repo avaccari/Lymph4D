@@ -1,7 +1,7 @@
 % Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
 
 % --- Analyze the data when a line is traced on the image
-function handles = analyzeLine(pos, hObject)
+function handles = lineAnalyze(pos, hObject)
 handles = guidata(hObject);
 
 % Move text to new position
@@ -23,6 +23,7 @@ handles.toExcel.sheet(1).name = 'Val-vs-Pxl';
 % Extract coordinates of points in the cross section
 dummy = handles.stackImg(:, :, 1, 1);
 [cx, cy, ~] = improfile(dummy, pos(:, 1), pos(:, 2));
+handles.linePts = [cx, cy];
 lcx = length(cx);
 c = round(cx);
 r = round(cy);
@@ -80,6 +81,8 @@ for stk = 1 : handles.stackNum
     end
     end
     prf = improfile(img, pos(:, 1), pos(:, 2), 'nearest');
+    
+    % If there is a template, extract the data from the template
     if isfield(handles, 'tmpl')
        dataTmpl(:, stk) = improfile(tmpl, pos(:, 1), pos(:, 2), 'nearest');
     end
@@ -88,6 +91,8 @@ end
 
 % Store extracted values in an easier to handle array
 val = data(3:end, 4:end);
+handles.lineVal = cell2mat(val);
+handles.tmplLineVal = dataTmpl;
 
 % Store in handle for export
 data(1, 1) = cellstr(['Evolution over time of cross section', note]);
@@ -148,7 +153,7 @@ txt = {'Evolution over time of each pixel in the cross section (Blue \rightarrow
        ['Slice: ', mat2str(handles.sliceIdx), note]};
 title(txt);
 ylabel('Amplitude');
-xlabel('Time');
+xlabel('Time [frames]');
 if isfield(handles, 'tmpl')
     subplot(2, pltCols, 4, 'parent', f2);
     h = plot(dataTmpl');
@@ -158,7 +163,7 @@ if isfield(handles, 'tmpl')
            ['Slice: ', mat2str(handles.sliceIdx), note]};
     title(txt);
     ylabel('Amplitude (Template)');
-    xlabel('Time');
+    xlabel('Time [frames]');
 end
 
 
@@ -195,4 +200,12 @@ uicontrol('parent', f2, ...
          'position', [0.0, 0.0, 0.1, 0.05], ...
          'callback', @(hObject, eventdata)exportToExcel(hObject, eventdata, handles));
 
+% Add another button with callback to calculate diffusion speed
+uicontrol('parent', f2, ...
+          'style', 'pushbutton', ...
+          'string', 'Velocity', ...
+          'units', 'normalized', ...
+          'position', [0.0, 0.95, 0.1, 0.05], ...
+          'callback', @(hObject, eventdata)evalVelocity(hObject, eventdata, handles));
+     
 guidata(hObject, handles);
