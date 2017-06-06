@@ -99,13 +99,13 @@ data(1, 1) = cellstr(['Evolution over time of cross section', note]);
 handles.toExcel.sheet(1).data = data;
 
 % Plot the the cross section evolution over time
-f2 = figure(2);
-handles.figLine = f2;
+fig = figure(handles.figs.lineAnalyze);
+handles.figLine = fig;
 pltCols = 1;
 if isfield(handles, 'tmpl')
     pltCols = 2;
 end
-subplot(2, pltCols, 1, 'parent', f2);
+subplot(2, pltCols, 1, 'parent', fig);
 colrs = jet(handles.stackNum);
 h = plot(cell2mat(val));
 set(h, {'color'}, num2cell(colrs, 2));
@@ -119,7 +119,7 @@ txt = strcat('Pixels along cross section:', ...
               mat2str(round(pos(2, :))));
 xlabel(txt);
 if isfield(handles, 'tmpl')
-    subplot(2, pltCols, 3, 'parent', f2);
+    subplot(2, pltCols, 3, 'parent', fig);
     colrs = jet(handles.stackNum);
     h = plot(dataTmpl);
     set(h, {'color'}, num2cell(colrs, 2));
@@ -145,7 +145,7 @@ end
 handles.toExcel.sheet(2).name = 'CSPxl-vs-Tim';
 
 % Plot the time evolution of each point in the cross section
-subplot(2, pltCols, 2, 'parent', f2);
+subplot(2, pltCols, 2, 'parent', fig);
 h = plot(cell2mat(val'));
 colrs = jet(lcx);
 set(h, {'color'}, num2cell(colrs, 2));
@@ -155,7 +155,7 @@ title(txt);
 ylabel('Amplitude');
 xlabel('Time [frames]');
 if isfield(handles, 'tmpl')
-    subplot(2, pltCols, 4, 'parent', f2);
+    subplot(2, pltCols, 4, 'parent', fig);
     h = plot(dataTmpl');
     colrs = jet(lcx);
     set(h, {'color'}, num2cell(colrs, 2));
@@ -193,7 +193,7 @@ end
 handles.toExcel.fileName = fullfile(dir, char(strcat(handles.machineId, name, '.xlsx')));
 
 % Add button with callback to export to excell
-uicontrol('parent', f2, ...
+uicontrol('parent', fig, ...
          'style', 'pushbutton', ...
          'string', [char(8594) 'XLSX'], ...
          'units', 'normalized', ...
@@ -201,7 +201,7 @@ uicontrol('parent', f2, ...
          'callback', @(hObject, eventdata)exportToExcel(hObject, eventdata, handles));
 
 % Add another button with callback to calculate diffusion speed
-uicontrol('parent', f2, ...
+uicontrol('parent', fig, ...
           'style', 'pushbutton', ...
           'string', 'Velocity', ...
           'units', 'normalized', ...

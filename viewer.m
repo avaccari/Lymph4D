@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 30-May-2017 15:13:21
+% Last Modified by GUIDE v2.5 06-Jun-2017 16:04:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -73,6 +73,7 @@ javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar');
 javaaddpath('3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar');
 javaaddpath('3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar');
 javaaddpath('3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar');
+addpath('3rdParty/xlwrite');
 
 % Initialize some "globals"
 [handles.storePath, ~, ~] = fileparts(mfilename('fullpath'));
@@ -85,6 +86,12 @@ handles.localMean.size = 3;
 set(handles.setFiltSizEd, 'String', num2str(handles.localMean.size));
 handles.alignType = 'rigid';
 set(handles.setAlignMtdPop, 'Value', 2);
+
+% Figures id
+handles.figs.lineAnalyze = 1;
+handles.figs.evalVelocity = 2;
+handles.figs.polyAnalyze = 3;
+
 
 % Get unique id
 handles.machineId = getUniqueId();
@@ -495,7 +502,7 @@ function selPolyRbtn_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of selPolyRbtn
 handles = guidata(hObject);
     
-handles.selection.mode = 'polygon';
+handles.selection.mode = 'poly';
 
 guidata(hObject, handles);
 
@@ -607,28 +614,7 @@ function lineSaveBtn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-if isfield(handles.drawing, 'line') && isvalid(handles.drawing.line)
-    prompt = 'Enter name for this line:';
-    var = inputdlg(prompt, 'Enter name');
-
-    % Check if the answer is valid. If not bail.
-    if isempty(var)
-        return
-    elseif isempty(var{1})
-        return
-    end
-    
-    var = ['line_', matlab.lang.makeValidName(var{1})];
-    eval([var '= handles.drawing.line.getPosition();']);    
-    file = fullfile(handles.storePath, handles.lastExpFile);
-    
-    if exist(file, 'file')
-        save(file, var, '-append');
-    else
-        save(file, var);
-    end
-end
-
+handles = analysisTmpls(handles, 'line', 'save');
 
 guidata(hObject, handles);
 
@@ -641,39 +627,7 @@ function lineLoadBtn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-try
-    file = fullfile(handles.storePath, handles.lastExpFile);
-    rexp = '^line_*';
-    vars = who('-file', file, '-regexp', rexp); 
-catch ME
-    msgbox('Cannot locate file containing latest line information');
-    return
-end
-
-% If more than one line exists, ask user to pick the one they want
-if length(vars) > 1
-    [s, v] = listdlg('PromptString', 'Select the desired line:', ...
-                     'SelectionMode', 'single', ...
-                     'ListString', vars);
-    
-    % If error, bail
-    if v == 0
-        msgbox('There was an error during the line selection process.');
-        return
-    end
-    
-    line = vars{s};
-else
-    line = vars{1};
-end
-
-load(file, line);
-
-handles = createLine(eval(line)', handles);
-
-handles.selection.mode = 'line';
-
-handles.selLineRbtn.Value = 1.0;
+handles = analysisTmpls(handles, 'line', 'load');
 
 guidata(hObject, handles);
 
@@ -687,39 +641,9 @@ function lineDelBtn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-try
-    file = fullfile(handles.storePath, handles.lastExpFile);
-    rexp = '^line_*';
-    vars = who('-file', file, '-regexp', rexp); 
-catch ME
-    msgbox('Cannot locate file containing latest line information');
-    return
-end
-
-% Ask user to pick the ones they want to delete
-[s, v] = listdlg('PromptString', 'Select line(s) to delete:', ...
-                 'SelectionMode', 'multiple', ...
-                 'ListString', vars);
-
-% If error, bail
-if v == 0
-    msgbox('There was an error during the line selection process.');
-    return
-end
-
-% Short of making your own MEX, there is no quick way to remove variables
-% from a .mat file so we load, delete, and save.
-mat = load(file);
-
-for i = 1:length(s)
-    mat = rmfield(mat, vars{s(i)});
-end
-
-save(file, '-struct', 'mat');
+handles = analysisTmpls(handles, 'line', 'delete');
 
 guidata(hObject, handles);
-
-
 
 
 % --- Executes on button press in polySaveBtn.
@@ -727,6 +651,11 @@ function polySaveBtn_Callback(hObject, eventdata, handles)
 % hObject    handle to polySaveBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+handles = analysisTmpls(handles, 'poly', 'save');
+
+guidata(hObject, handles);
 
 
 % --- Executes on button press in polyLoadBtn.
@@ -734,6 +663,11 @@ function polyLoadBtn_Callback(hObject, eventdata, handles)
 % hObject    handle to polyLoadBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+handles = analysisTmpls(handles, 'poly', 'load');
+
+guidata(hObject, handles);
 
 
 % --- Executes on button press in polyDelBtn.
@@ -741,6 +675,11 @@ function polyDelBtn_Callback(hObject, eventdata, handles)
 % hObject    handle to polyDelBtn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+handles = analysisTmpls(handles, 'poly', 'delete');
+
+guidata(hObject, handles);
 
 
 
@@ -1129,7 +1068,7 @@ switch handles.selection.mode
         switch handles.buttonType
             case 'normal' % Left Single-Click
                 if handles.onImage
-                    handles = analyzePoint(handles);
+                    handles = pointAnalyze(handles);
                 end
             case 'open' % Left Double-Click
         end
@@ -1151,7 +1090,7 @@ switch handles.selection.mode
             case 'open'
                 handles = lineDestroy(handles);
         end
-    case 'polygon'
+    case 'poly'
         switch handles.buttonType
             case 'normal'
                 if handles.onImage
@@ -1181,8 +1120,8 @@ guidata(hObject, handles);
 % --------------------------------------------------------------------
 
 % --------------------------------------------------------------------
-function menuOptions_Callback(hObject, eventdata, handles)
-% hObject    handle to menuOptions (see GCBO)
+function mOpt_Callback(hObject, eventdata, handles)
+% hObject    handle to mOpt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -1258,8 +1197,8 @@ guidata(hObject, handles);
 
 
 % --------------------------------------------------------------------
-function menuExport_Callback(hObject, eventdata, handles)
-% hObject    handle to menuExport (see GCBO)
+function mExp_Callback(hObject, eventdata, handles)
+% hObject    handle to mExp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 

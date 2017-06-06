@@ -1,7 +1,7 @@
 % Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
 
 % --- Create the analysis lines
-function handles = polyCreate(handles)
+function handles = polyCreate(handles, varargin)
 handles.drawing.active = true;
 % Need to push data back to handles because impoly is interactive and will
 % run in parallel with the main gui causing the polyCreate to be triggered
@@ -9,8 +9,11 @@ handles.drawing.active = true;
 guidata(handles.mainGui, handles);
 
 % This will only exit after the user is done drawing
-handles.drawing.poly = impoly(handles.mainAx);
-
+if isempty(varargin)
+    handles.drawing.poly = impoly(handles.mainAx);
+else
+    handles.drawing.poly = impoly(handles.mainAx, varargin{1});
+end
 % Define callback
 handles.drawing.poly.addNewPositionCallback(@(pos)polyAnalyze(pos, handles.mainGui));
 

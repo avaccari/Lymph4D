@@ -33,9 +33,10 @@ end
 handles.lastSaveDir = dir;
 % warning('off','MATLAB:xlswrite:AddSheet');
 for idx = 1 : length(handles.toExcel.sheet)
-xlwrite(fullfile(dir, file), ...
-        handles.toExcel.sheet(idx).data, ...
-        handles.toExcel.sheet(idx).name);
+    % Using 3rd party code based on java libraries
+    xlwrite(fullfile(dir, file), ...
+            handles.toExcel.sheet(idx).data, ...
+            handles.toExcel.sheet(idx).name);
 end
 
 % Remove notification

@@ -39,7 +39,7 @@ end
 tmin(sum(handles.lineVal.^2) == 0) = [];
 
 % Plot distance vs value
-f3 = figure(3);
+fig = figure(handles.figs.evalVelocity);
 pltCols = 1;
 
 % Check if there is a template
@@ -48,7 +48,7 @@ if isfield(handles, 'tmpl')
 end
 
 % Plot for current stack
-s1 = subplot(2, pltCols, 1, 'parent', f3);
+s1 = subplot(2, pltCols, 1, 'parent', fig);
 colrs = jet(lineSz);
 h = plot(dist, lineVal);
 set(h, {'color'}, num2cell(colrs, 2));
@@ -65,7 +65,7 @@ scatter(dist(mxIdx), mx, ...
 
 % Plot maximum displacement as function of time
 dmax = dist - dist(mxIdx(1));
-s2 = subplot(2, pltCols, 2, 'parent', f3);
+s2 = subplot(2, pltCols, 2, 'parent', fig);
 scatter(tmin, dmax(mxIdx), ...
         'CData', colrs);
 title('Displacement of maximum over time (Blue \rightarrow Red)');
@@ -123,7 +123,7 @@ if isfield(handles, 'tmpl')
     tmin(sum(handles.tmplLineVal.^2) == 0) = [];
 
     % Plot for current template stack
-    s3 = subplot(2, pltCols, 3, 'parent', f3);
+    s3 = subplot(2, pltCols, 3, 'parent', fig);
     colrs = jet(lineSz);
     h = plot(dist, lineVal);
     set(h, {'color'}, num2cell(colrs, 2));
@@ -140,7 +140,7 @@ if isfield(handles, 'tmpl')
       
     % Plot maximum displacement as function of time
     dmax = dist - dist(mxIdx(1));
-    s4 = subplot(2, pltCols, 4, 'parent', f3);
+    s4 = subplot(2, pltCols, 4, 'parent', fig);
     scatter(tmin, dmax(mxIdx), ...
             'CData', colrs);
     title('Displacement of maximum over time (Blue \rightarrow Red)');
