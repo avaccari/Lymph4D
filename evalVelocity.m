@@ -50,7 +50,7 @@ end
 % Plot for current stack
 s1 = subplot(2, pltCols, 1, 'parent', fig);
 colrs = jet(lineSz);
-h = plot(dist, lineVal);
+h = plot(dist, lineVal, '.');
 set(h, {'color'}, num2cell(colrs, 2));
 title('Evolution over time of cross section (Blue \rightarrow Red)');
 ylabel('Amplitude');
@@ -125,11 +125,17 @@ if isfield(handles, 'tmpl')
     % Plot for current template stack
     s3 = subplot(2, pltCols, 3, 'parent', fig);
     colrs = jet(lineSz);
-    h = plot(dist, lineVal);
+    h = plot(dist, lineVal, '.');
     set(h, {'color'}, num2cell(colrs, 2));
     title('Evolution over time of cross section (Blue \rightarrow Red)');
     ylabel('Amplitude (Template)');
     xlabel(['Distance from first pixel [', xunits, ']']);
+    
+    
+    % Fit advection-diffusion functions
+   
+    
+    
     
     % Find maxima and location and identify on plot
     [mx, mxIdx] = max(lineVal);

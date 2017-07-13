@@ -13,6 +13,9 @@ end
 img = handles.stackOrig;
 [~, ~, handles.sliceNum, handles.stackNum] = size(img);
 
+% Define mask
+handles.stackMask = ones(size(img), 'logical');
+
 % Evaluate stack range (remove 1% outliers)
 q = prctile(img(:), handles.cOut);
 handles.stackCLims = [q(1), q(2)];

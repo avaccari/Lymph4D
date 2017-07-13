@@ -24,7 +24,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 06-Jun-2017 16:04:25
+% Last Modified by GUIDE v2.5 12-Jul-2017 10:50:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -80,17 +80,22 @@ addpath('3rdParty/xlwrite');
 handles.onImage = false;
 handles.selection.mode = 'point';
 handles.drawing.active = false;
+
 handles.localMean.use = false;
 handles.localMean.type = 1;
 handles.localMean.size = 3;
 set(handles.setFiltSizEd, 'String', num2str(handles.localMean.size));
+
 handles.alignType = 'rigid';
 set(handles.setAlignMtdPop, 'Value', 2);
+
+handles.dirMapType = 1;
 
 % Figures id
 handles.figs.lineAnalyze = 1;
 handles.figs.evalVelocity = 2;
 handles.figs.polyAnalyze = 3;
+handles.figs.dirMap = 4;
 
 
 % Get unique id
@@ -685,6 +690,57 @@ guidata(hObject, handles);
 
 
 
+% --- Executes on button press in dirMapBtn.
+function dirMapBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to dirMapBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+
+handles = directionMap(handles);
+
+guidata(hObject, handles);
+
+
+
+% --- Executes on selection change in setDirMapTypPop.
+function setDirMapTypPop_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirMapTypPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns setDirMapTypPop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from setDirMapTypPop
+handles = guidata(hObject);
+
+% Choices (defined in guide):
+% 1 - 'Anis. Diff.'
+% 2 - 'Diff.-Adv.'
+handles.dirMapType = get(hObject, 'Value');
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setDirMapTypPop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setDirMapTypPop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+
 
 
 % --- Executes on button press in setTempBtn.
@@ -983,9 +1039,33 @@ handles = updateGui(handles);
 guidata(hObject, handles);
 
 
+% --- Executes on button press in thresNoiseBtn.
+function thresNoiseBtn_Callback(hObject, eventdata, handles)
+% hObject    handle to thresNoiseBtn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
 
+% Can do some smart evaluation here by looking at the distribution of the
+% data that appears to be bimodal. The minimum in between the modes would
+% be a good spot to use as threshold.
 
+thrs = 100;
 
+% Threhsold image with the found value and store new mask
+handles.stackMask = (handles.stackImg > thrs);
+handles.stackImg = handles.stackImg .* handles.stackMask;
+
+% Update image
+set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));  
+
+% Update array indexing
+handles = updateIdx(handles);
+
+% Update display
+handles = updateGui(handles);
+
+guidata(hObject, handles);
 
 
 
@@ -1188,9 +1268,6 @@ if isfield(handles, 'tmpl')
 end
 
 guidata(hObject, handles);
-
-
-
 
 
 
@@ -1567,17 +1644,5 @@ end
 
 % Save to workspace
 assignin('base', name, handles.stackImg);
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in directionBtn.
-function directionBtn_Callback(hObject, eventdata, handles)
-% hObject    handle to directionBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = directionMap(handles);
 
 guidata(hObject, handles);
