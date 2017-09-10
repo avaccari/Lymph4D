@@ -1,5 +1,18 @@
 % Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
 
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% any later version.
+% 
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 function varargout = viewer(varargin)
 % VIEWER MATLAB code for viewer.fig
 %      VIEWER, by itself, creates a new VIEWER or raises the existing
@@ -24,7 +37,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 12-Jul-2017 10:50:05
+% Last Modified by GUIDE v2.5 10-Sep-2017 10:26:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -89,7 +102,10 @@ set(handles.setFiltSizEd, 'String', num2str(handles.localMean.size));
 handles.alignType = 'rigid';
 set(handles.setAlignMtdPop, 'Value', 2);
 
-handles.dirMapType = 1;
+handles.direction.mapType = 1;
+handles.direction.hoodSiz = 3;
+handles.direction.useHood = false;
+
 
 % Figures id
 handles.figs.lineAnalyze = 1;
@@ -115,8 +131,22 @@ handles.cOut = [handles.outliers, 100 - handles.outliers];
 
              
 % Add copyright info
-txt = {'All rights reserved.', ...
+txt = {'Copyright (C) 2017 Andrea Vaccari', ...
        '', ...
+       'This program is free software: you can redistribute it and/or modify', ...
+       'it under the terms of the GNU General Public License as published by', ...
+       'the Free Software Foundation, either version 3 of the License, or', ...
+       'any later version.', ...
+       'This program is distributed in the hope that it will be useful,', ...
+       'but WITHOUT ANY WARRANTY; without even the implied warranty of', ...
+       'MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the', ...
+       'GNU General Public License for more details.', ...
+       '', ...
+       'You should have received a copy of the GNU General Public License', ...
+       'along with this program.  If not, see <http://www.gnu.org/licenses/>.', ...
+       '', ...
+       'For "xlwrite":',...
+       'Copyright (C) 2013 Alec de Zegher', ...
        'Redistribution and use in source and binary forms, with or without', ...
        'modification, are permitted provided that the following conditions are', ...
        'met:', ...
@@ -137,7 +167,11 @@ txt = {'All rights reserved.', ...
        'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN', ...
        'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)', ...
        'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE', ...
-       'POSSIBILITY OF SUCH DAMAGE.'};
+       'POSSIBILITY OF SUCH DAMAGE.', ...
+       '', ...
+       '"xlwrite" uses the Apache POI library under the', ...
+       'Apache License, Version 2.0, January 2004', ...
+       'http://www.apache.org/licenses/'};
    
 uicontrol('parent', handles.mainGui, ...
          'style', 'text', ...
@@ -182,6 +216,9 @@ handles = guidata(hObject);
 
 % Let user select the experiment (directory)
 path = uigetdir();
+if path == 0
+    return
+end
 
 % Open and read the stack
 handles = openExperiment(handles, path);
@@ -292,6 +329,9 @@ end
 % Let user select the experiment (directory)
 [fName, pName] = uigetfile(fullfile(handles.storePath, '*.mat'), ...
                            'Select a file containing a 4D stack (x, y, z, t)');
+if fName == 0
+    return
+end
                        
 % Load stack
 data = load(fullfile(pName, fName));
@@ -690,6 +730,7 @@ guidata(hObject, handles);
 
 
 
+
 % --- Executes on button press in dirMapBtn.
 function dirMapBtn_Callback(hObject, eventdata, handles)
 % hObject    handle to dirMapBtn (see GCBO)
@@ -714,9 +755,12 @@ function setDirMapTypPop_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Choices (defined in guide):
-% 1 - 'Anis. Diff.'
-% 2 - 'Diff.-Adv.'
-handles.dirMapType = get(hObject, 'Value');
+% 1 - 'Time Contr.'
+% 2 - 'Anis. Difs'
+% 3 - 'Difs-Adv.'
+% 4 - 'Difs-Adv.+Src'
+% 5 - 'Comp. Mods'
+handles.direction.mapType = get(hObject, 'Value');
 
 % Need to push the data so that it is available in handles.mainGui
 guidata(hObject, handles);
@@ -736,6 +780,78 @@ function setDirMapTypPop_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+
+% --- Executes on button press in setDIrHoodChk.
+function setDIrHoodChk_Callback(hObject, eventdata, handles)
+% hObject    handle to setDIrHoodChk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of setDIrHoodChk
+handles = guidata(hObject);
+
+handles.direction.useHood = get(hObject, 'Value');
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+
+function setDirHoodSizEd_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirHoodSizEd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of setDirHoodSizEd as text
+%        str2double(get(hObject,'String')) returns contents of setDirHoodSizEd as a double
+handles = guidata(hObject);
+
+hoodSiz = str2double(get(hObject, 'String'));
+
+% Check if odd, otherwise round to closest odd.
+if hoodSiz < 3
+    hoodSiz = 3;
+end
+
+if hoodSiz > 3
+    if hoodSiz/2 == int8(hoodSiz/2)
+        hoodSiz = hoodSiz + 1;
+    end
+end
+
+% Update gui
+set(hObject, 'String', num2str(hoodSiz));
+
+handles.direction.hoodSiz = hoodSiz;
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setDirHoodSizEd_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setDirHoodSizEd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+
+
+
 
 
 
@@ -801,9 +917,14 @@ delete(handles.tmplCBar);
 % Remove from handles
 handles = rmfield(handles, {'stackTmplOrig', ...
                             'stackTmpl', ...
-                            'tmpl', ...
-                            'tmplInfo'});
+                            'tmpl'});
 
+% Try to delete the template info
+try
+    rmfield(handles, 'tmplInfo');
+catch ME
+end
+                        
 % Update display
 handles = updateGui(handles);
 
@@ -839,13 +960,21 @@ movingReg = imwarp(moving, tform, 'OutputView', imref2d(size(moving)), 'Interp',
 
 % Show before and after
 f3 = figure(3);
+
 subplot(1, 2, 1);
-imshowpair(fixed, moving, 'Scaling', 'joint');
+imagesc(imfuse(fixed, moving, 'Scaling', 'joint'));
+set(gca,'visible','off');
 title('Before');
+axis equal;
+
 subplot(1, 2, 2);
-imshowpair(fixed, movingReg, 'Scaling', 'joint');
+imagesc(imfuse(fixed, movingReg, 'Scaling', 'joint'));
+set(gca,'visible','off');
 title('After');
+axis equal;
+
 set(gcf, 'NextPlot', 'add');
+
 axes;
 h = title(['Results of alignment using: ', handles.alignType]);
 set(gca, 'Visible', 'off');
