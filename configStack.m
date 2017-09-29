@@ -65,6 +65,7 @@ set(handles.sliceSlider, 'Value', 0);
 
 % Display image
 axes(handles.mainAx);
+
 pos = get(handles.mainAx, 'Position');
 handles.img = imagesc(img(:, :, handles.sliceIdx, handles.stackIdx), handles.stackCLims);
 handles.imgCBar = colorbar('location', 'south', ...

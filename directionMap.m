@@ -175,6 +175,8 @@ function handles = directionMap(handles)
             nc = {'Diff Coeff', ...
                   'Reluctance', ...
                   'Vmag', ...
+                  'Péclet Num.', ...
+                  'Vdir', ...
                   'Vx', ...
                   'Vy', ...
                   'Resid Norm'};
@@ -193,10 +195,14 @@ function handles = directionMap(handles)
             rmM = rmM + [-1, 1];
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
+            vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
+            pec = vmag ./ coeff(:, :, 1);
             ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                     coeff(:, :, 1), ...
                                                                     relc, ...
                                                                     vmag, ...
+                                                                    pec, ...
+                                                                    vdir, ...
                                                                     coeff(:, :, 2:end), ...
                                                                     resNorm);
 
@@ -213,10 +219,14 @@ function handles = directionMap(handles)
                 % the edges)
                 relc = exp(-coeff(:, :, 1));
                 vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
+                vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
+                pec = vmag ./ coeff(:, :, 1);
                 ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                             coeff(:, :, 1), ...
                                                                             relc, ...
                                                                             vmag, ...
+                                                                            pec, ...
+                                                                            vdir, ...
                                                                             coeff(:, :, 2:end), ...
                                                                             resNorm);
             end
@@ -233,6 +243,8 @@ function handles = directionMap(handles)
             nc = {'Diff Coeff', ...
                   'Reluctance', ...
                   'Vmag', ...
+                  'Péclet Num.', ...
+                  'Vdir', ...
                   'Vx', ...
                   'Vy', ...
                   'Source', ...
@@ -252,10 +264,14 @@ function handles = directionMap(handles)
             rmM = rmM + [-1, 1];
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
+            vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
+            pec = vmag ./ coeff(:, :, 1);
             ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                     coeff(:, :, 1), ...
                                                                     relc, ...
                                                                     vmag, ...
+                                                                    pec, ...
+                                                                    vdir, ...
                                                                     coeff(:, :, 2:end), ...
                                                                     resNorm);
 
@@ -272,10 +288,14 @@ function handles = directionMap(handles)
                 % the edges)
                 relc = exp(-coeff(:, :, 1));
                 vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
+                vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
+                pec = vmag ./ coeff(:, :, 1);
                 ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                             coeff(:, :, 1), ...
                                                                             relc, ...
                                                                             vmag, ...
+                                                                            pec, ...
+                                                                            vdir, ...
                                                                             coeff(:, :, 2:end), ...
                                                                             resNorm);
             end
@@ -320,8 +340,8 @@ function handles = directionMap(handles)
     fig = figure(handles.figs.dirMap);
     pos = [0.05, 0.1, 0.9, 0.8];
     if isfield(handles, 'tmpl')
-        pos = [0.05, 0.1, 0.4, 0.8];
-        posTmpl = [0.55, 0.1, 0.4, 0.8];
+        posTmpl = [0.05, 0.1, 0.4, 0.8];
+        pos = [0.55, 0.1, 0.4, 0.8];
     end
         
     % Mask the overlays
@@ -346,12 +366,14 @@ function handles = directionMap(handles)
     end
 
     channel = 1;
-    h = imagesc(ax, ovrl(:, :, channel));
+    data = ovrl(:, :, channel);
+    h = imagesc(ax, data);
     colormap(ax, 'jet');
     set(h, 'AlphaData', mask);
     colorbar(ax);
     if isfield(handles, 'tmpl')
-        hT = imagesc(axT, ovrlTmpl(:, :, channel));
+        dataTmpl = ovrlTmpl(:, :, channel);
+        hT = imagesc(axT, dataTmpl);
         colormap(axT, 'jet');
         set(hT, 'AlphaData', mask);
         colorbar(axT);
@@ -366,18 +388,45 @@ function handles = directionMap(handles)
                      'callback', @setChannel);             
     function setChannel(src, evt)
         channel = src.Value;
+
         data = ovrl(:, :, channel);
+        set(h, 'CData', data);        
+        
         mM = minmax(data(:)');
-        set(h, 'CData', data);
         set(ax, 'CLim', mM);
+        
         if isfield(handles, 'tmpl')
-            dataTmpl = ovrlTmpl(:, :, channel);
-            mMT = minmax(dataTmpl(:)');
+            dataTmpl = ovrlTmpl(:, :, channel);     
             set(hT, 'CData', dataTmpl);
+            
+            mMT = minmax(dataTmpl(:)');
+
             % Same scales
-            mM = minmax([mM, mMT]);
+            mM = minmax([mM, mMT]);            
             set(ax, 'CLim', mM);
             set(axT, 'CLim', mM);
+        end
+        
+        % Check for special color maps
+        if strcmp(chnls{channel}, 'Vdir')            
+            colormap(ax, colorcet('C2'));
+            if isfield(handles, 'tmpl')
+                colormap(axT, colorcet('C2'));
+            end
+        elseif strcmp(chnls{channel}, 'Péclet Num.')
+            colormap(ax, colorcet('D1'));
+            mx = max(mM);
+            scale = [-mx, mx] + 1;
+            set(ax, 'CLim', scale); 
+            if isfield(handles, 'tmpl')
+                colormap(axT, colorcet('D1'));
+                set(axT, 'CLim', scale); 
+            end
+        else
+            colormap(ax, 'jet');
+            if isfield(handles, 'tmpl')
+                colormap(axT, 'jet');
+            end            
         end
     end
 
@@ -424,7 +473,7 @@ function handles = directionMap(handles)
               'callback', @smoothResults);
     function smoothResults(src, evt)
         % Store original
-        fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 Gaussian kernel
+        fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
         ovrl = imfilter(ovrl, fil, 'replicate', 'same');
         
         if isfield(handles, 'tmpl')
@@ -465,6 +514,7 @@ function handles = directionMap(handles)
         mM = minmax(data(:)');
         set(h, 'CData', data);
         set(ax, 'CLim', mM);
+        set(h, 'AlphaData', mask);
         if isfield(handles, 'tmpl')
             dataTmpl = ovrlTmpl(:, :, channel);
             mMT = minmax(dataTmpl(:)');
@@ -473,8 +523,102 @@ function handles = directionMap(handles)
             mM = minmax([mM, mMT]);
             set(ax, 'CLim', mM);
             set(axT, 'CLim', mM);
-        end        
+            set(hT, 'AlphaData', mask);
+        end
+        % Check for special scales
+        if strcmp(chnls{channel}, 'Péclet Num.')
+            mx = max(mM);
+            scale = [-mx, mx] + 1;
+            set(ax, 'CLim', scale); 
+            if isfield(handles, 'tmpl')
+                colormap(axT, colorcet('D1'));
+                set(axT, 'CLim', scale); 
+            end
+        end
+       
     end
+
+    % Add button with callback to apply velocity magnitude mask
+    uicontrol('parent', fig, ...
+              'style', 'pushbutton', ...
+              'string', 'Vmag mask', ...
+              'units', 'normalized', ...
+              'position', [0.2, 0.95, 0.1, 0.05], ...
+              'callback', @vMagMask);
+    function vMagMask(src, evt)
+        % Load the alpha magnitude from the Vmag channel
+        idx = find(strcmp(chnls, 'Vmag'));
+        alpha = ovrl(:, :, idx);
+        % Set arbitrary threshold at 50%
+        alpha = alpha / (0.5 * max(alpha(:)));
+        set(h, 'AlphaData', alpha);   
+        if isfield(handles, 'tmpl')
+            alpha = ovrlTmpl(:, :, idx);
+            % Set arbitrary threshold at 50%
+            alpha = alpha / (0.5 * max(alpha(:)));
+            set(hT, 'AlphaData', alpha);   
+        end
+    end
+
+
+    satLevel = 0.1;
+    % Add button with callback to apply color saturation
+    uicontrol('parent', fig, ...
+              'style', 'pushbutton', ...
+              'string', 'Saturate', ...
+              'units', 'normalized', ...
+              'position', [0.3, 0.95, 0.1, 0.05], ...
+              'callback', @colSaturation);
+    function colSaturation(src, evt)
+        q = prctile(data(:), [satLevel, 100 - satLevel]);
+        set(ax, 'CLim', q);
+        if isfield(handles, 'tmpl')
+            qT = prctile(dataTmpl(:), [satLevel, 100 - satLevel]);
+
+            % Same scales
+            q = minmax([q, qT]);            
+            set(ax, 'CLim', q);
+            set(axT, 'CLim', q);
+            
+            % Check for special scales
+            if strcmp(chnls{channel}, 'Péclet Num.')
+                colormap(ax, colorcet('D1'));
+                q = max(q);
+                scale = [-q, q] + 1;
+                set(ax, 'CLim', scale); 
+                if isfield(handles, 'tmpl')
+                    colormap(axT, colorcet('D1'));
+                    set(axT, 'CLim', scale); 
+                end
+            end
+        end               
+    end
+
+    
+    % Add entry box to specify color saturation level
+    uicontrol('parent', fig, ...
+              'style','edit',...
+              'string','0.1%',...
+              'units','normalized',...
+              'position',[0.4, 0.95, 0.1, 0.05],...
+              'callback', @setSaturation);  
+    function setSaturation(src, evt)
+        str = get(src, 'String');
+        num = str2double(str);
+        
+        if isnan(num) || (num < 0) || (num >= 50 )
+            set(src, 'String', satLevel);
+            msgbox('Enter a number between 0 and less than 50');
+            return;
+        end
+        
+        satLevel = num;
+        set(src, 'String', [num2str(satLevel), '%']);
+        
+        colSaturation(src, evt);
+    end
+
+
 
     % Add button with callback to calculate differences between current and template
     uicontrol('parent', fig, ...
@@ -577,7 +721,7 @@ end
 
 
 % Evaluate the advection-diffusion model
-% Each time step is calculated from prefious based on
+% Each time step is calculated from previous based on
 %   In = I + dt * (D * (Ixx + Iyy) - VxIx - VyIy)
 % or
 %   y = A' * x
@@ -608,7 +752,7 @@ function [coeff, res, resNorm] = advecDiff(stk, be, en, useHood, hoodSiz)
     b = [];
     Aeq = [];
     beq = [];
-    lb = [0, 0, 0];
+    lb = [0, -Inf, -Inf];
     ub = [Inf, Inf, Inf];
     x0 = [];        
     options = optimoptions('lsqlin', ...
@@ -691,7 +835,7 @@ function [coeff, res, resNorm] = advecDiffSrc(stk, be, en, useHood, hoodSiz)
     b = [];
     Aeq = [];
     beq = [];
-    lb = [0, 0, 0, -Inf];
+    lb = [0, -Inf, -Inf, -Inf];
     ub = [Inf, Inf, Inf, Inf];
     x0 = [];        
     options = optimoptions('lsqlin', ...

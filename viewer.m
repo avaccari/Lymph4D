@@ -80,13 +80,16 @@ end
 
 % Initialisation of POI Libs
 % Add Java POI Libs to matlab javapath
-javaaddpath('3rdParty/xlwrite/poi_library/poi-3.8-20120326.jar');
-javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-3.8-20120326.jar');
-javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar');
-javaaddpath('3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar');
-javaaddpath('3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar');
-javaaddpath('3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar');
-addpath('3rdParty/xlwrite');
+if isdeployed == false
+    javaaddpath('3rdParty/xlwrite/poi_library/poi-3.8-20120326.jar');
+    javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-3.8-20120326.jar');
+    javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar');
+    javaaddpath('3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar');
+    javaaddpath('3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar');
+    javaaddpath('3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar');
+    addpath('3rdParty/xlwrite');
+    addpath('3rdParty/colorcet');
+end
 
 % Initialize some "globals"
 [handles.storePath, ~, ~] = fileparts(mfilename('fullpath'));
@@ -171,7 +174,11 @@ txt = {'Copyright (C) 2017 Andrea Vaccari', ...
        '', ...
        '"xlwrite" uses the Apache POI library under the', ...
        'Apache License, Version 2.0, January 2004', ...
-       'http://www.apache.org/licenses/'};
+       'http://www.apache.org/licenses/', ...
+       '', ...
+       'Some of the colormaps upsed were designed by Peter Kovesi:', ...
+       'Peter Kovesi. Good Colour Maps: How to Design Them.', ...
+       'arXiv:1509.03700 [cs.GR] 2015'};
    
 uicontrol('parent', handles.mainGui, ...
          'style', 'text', ...
@@ -215,13 +222,27 @@ function selectExpBtn_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 % Let user select the experiment (directory)
-path = uigetdir();
+try
+    load(fullfile(handles.storePath, handles.lastExpFile), 'path');
+catch ME
+end
+
+if exist('path', 'var')
+    path = uigetdir(path);
+else
+    path = uigetdir();
+end
 if path == 0
     return
 end
 
 % Open and read the stack
-handles = openExperiment(handles, path);
+try
+    handles = openExperiment(handles, path);
+catch ME
+    msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
+    return
+end
 
 % Store path and experiment info for fast access
 file = fullfile(handles.storePath, handles.lastExpFile);
@@ -737,8 +758,12 @@ function dirMapBtn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
-
-handles = directionMap(handles);
+try
+    handles = directionMap(handles);
+catch ME
+    msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
+    return
+end
 
 guidata(hObject, handles);
 

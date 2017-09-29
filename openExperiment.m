@@ -102,7 +102,10 @@ for st = 1 : stackNum
             return
         end
         img(:, :, sl, st) = dicomread(fil);
-        handles.expInfo.full(sl, st) = dicominfo(fil);
+        try
+            handles.expInfo.full(sl, st) = dicominfo(fil);
+        catch ME
+        end
     end
 end
 
