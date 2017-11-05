@@ -26,6 +26,12 @@ end
 img = handles.stackOrig;
 [~, ~, handles.sliceNum, handles.stackNum] = size(img);
 
+% Upload temporal slice limits
+handles.dirTempStart = 1;
+handles.dirTempEnd = handles.stackNum;
+set(handles.setDirTempStart, 'String', num2str(handles.dirTempStart));
+set(handles.setDirTempEnd, 'String', num2str(handles.dirTempEnd));
+
 % Define mask
 handles.stackMask = ones(size(img), 'logical');
 

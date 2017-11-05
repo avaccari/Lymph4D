@@ -37,7 +37,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 10-Sep-2017 10:26:36
+% Last Modified by GUIDE v2.5 04-Oct-2017 23:36:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -81,14 +81,15 @@ end
 % Initialisation of POI Libs
 % Add Java POI Libs to matlab javapath
 if isdeployed == false
-    javaaddpath('3rdParty/xlwrite/poi_library/poi-3.8-20120326.jar');
-    javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-3.8-20120326.jar');
-    javaaddpath('3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar');
-    javaaddpath('3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar');
-    javaaddpath('3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar');
-    javaaddpath('3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar');
-    addpath('3rdParty/xlwrite');
-    addpath('3rdParty/colorcet');
+    [loc, ~, ~] = fileparts(mfilename('fullpath'));
+    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-3.8-20120326.jar']);
+    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-ooxml-3.8-20120326.jar']);
+    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar']);
+    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar']);
+    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar']);
+    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar']);
+    addpath([loc, '/3rdParty/xlwrite']);
+    addpath([loc, '/3rdParty/colorcet']);
 end
 
 % Initialize some "globals"
@@ -862,6 +863,86 @@ guidata(hObject, handles);
 % --- Executes during object creation, after setting all properties.
 function setDirHoodSizEd_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to setDirHoodSizEd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+
+function setDirTempStart_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirTempStart (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of setDirTempStart as text
+%        str2double(get(hObject,'String')) returns contents of setDirTempStart as a double
+handles = guidata(hObject);
+
+val = str2double(get(hObject,'String'));
+if val < 1
+    val = 1;
+elseif val > handles.dirTempEnd
+    val = handles.dirTempEnd;
+end
+
+handles.dirTempStart = val;
+set(handles.setDirTempStart, 'String', num2str(handles.dirTempStart));
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setDirTempStart_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setDirTempStart (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
+
+function setDirTempEnd_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirTempEnd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of setDirTempEnd as text
+%        str2double(get(hObject,'String')) returns contents of setDirTempEnd as a double
+handles = guidata(hObject);
+
+val = str2double(get(hObject,'String'));
+if val > handles.stackNum
+    val = handles.stackNum;
+elseif val < handles.dirTempStart
+    val = handles.dirTempStart;
+end
+
+handles.dirTempEnd = val;
+set(handles.setDirTempEnd, 'String', num2str(handles.dirTempEnd));
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setDirTempEnd_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setDirTempEnd (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

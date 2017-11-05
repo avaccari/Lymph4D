@@ -102,8 +102,8 @@ function handles = directionMap(handles)
     end
 
     % Define time range
-    be = 1;
-    en = handles.stackNum - 1;  
+    be = handles.dirTempStart;
+    en = handles.dirTempEnd - 1;  
        
     % Switch based on the method
     % Choices (defined in guide):
@@ -135,7 +135,7 @@ function handles = directionMap(handles)
             chnls = [chnls, nc];
 
             % Evaluate anisotropic diffusion model on current stack
-            [coeff, res, resNorm] = anisoDiff(stk, be, en, useHood, hoodSiz);
+            [coeff, res, resNorm] = modAnisoDiff(stk, be, en, useHood, hoodSiz);
             
             % Store results in overlays
             [M, I] = max(coeff, [], 3);
@@ -152,7 +152,7 @@ function handles = directionMap(handles)
             if isfield(handles, 'tmpl')
                 
                 % Evaluate anisotropic diffusion model on template stack
-                [coeff, res, resNorm] = anisoDiff(stkTmpl, be, en, useHood, hoodSiz);
+                [coeff, res, resNorm] = modAnisoDiff(stkTmpl, be, en, useHood, hoodSiz);
 
                 % Store data in overlays
                 [M, I] = max(coeff, [], 3);
@@ -184,7 +184,7 @@ function handles = directionMap(handles)
             chnls = [chnls, nc];
 
             % Evaluate advection-diffusion model on current stack
-            [coeff, res, resNorm] = advecDiff(stk, be, en, useHood, hoodSiz);
+            [coeff, res, resNorm] = modAdvecDiff(stk, be, en, useHood, hoodSiz);
 
             % Store data in overlays
             ovrl = cat(3, ovrl, zeros([size(img), snc]));
@@ -210,7 +210,7 @@ function handles = directionMap(handles)
             if isfield(handles, 'tmpl')
 
                 % Evaluate advection-diffusion model on template stack
-                [coeff, res, resNorm] = advecDiff(stkTmpl, be, en, useHood, hoodSiz);
+                [coeff, res, resNorm] = modAdvecDiff(stkTmpl, be, en, useHood, hoodSiz);
 
                 % Store data in overlays
                 ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
@@ -253,7 +253,7 @@ function handles = directionMap(handles)
             chnls = [chnls, nc];
 
             % Evaluate advection-diffusion-source model on current stack
-            [coeff, res, resNorm] = advecDiffSrc(stk, be, en, useHood, hoodSiz);
+            [coeff, res, resNorm] = modAdvecDiffSrc(stk, be, en, useHood, hoodSiz);
 
             % Store data in overlays
             ovrl = cat(3, ovrl, zeros([size(img), snc]));
@@ -279,7 +279,7 @@ function handles = directionMap(handles)
             if isfield(handles, 'tmpl')
 
                 % Evaluate advection-diffusion-source model on template stack
-                [coeff, res, resNorm] = advecDiffSrc(stkTmpl, be, en, useHood, hoodSiz);
+                [coeff, res, resNorm] = modAdvecDiffSrc(stkTmpl, be, en, useHood, hoodSiz);
 
                 % Store data in overlays
                 ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
@@ -355,7 +355,11 @@ function handles = directionMap(handles)
     img = repmat(1 - imadjust(mat2gray(img)), 1, 1, 3);
     ax = subplot('position', pos, 'parent', fig);
     imagesc(ax, img);
-    title('Directional Analysis');
+    title(['Directional Analysis (Temporal stacks: ', ...
+          num2str(handles.dirTempStart), ...
+          '-', ...
+          num2str(handles.dirTempEnd - 1), ...
+          ')']);
     hold(ax, 'on');
     if isfield(handles, 'tmpl')
         imgTmpl = repmat(1 - imadjust(mat2gray(imgTmpl)), 1, 1, 3);
@@ -633,255 +637,6 @@ end
 
 
 
-% Evaluate the anisotropic diffusion model
-% Calculate using anisotropic diffusion and contraint least square
-% Each diffusive step in time is calculated from the previous image
-%   In = I + dt * (Cn * GIn + Cs * GIs + Ce * GIe + Cw * GIw)
-% or
-%   y = GI' * x
-% where
-%   y = (In - I)
-%   x = dt * [Cn; Cs; Ce; Cw]
-%   GI = [GIn, GIs, GIe, GIw]
-% which can be solved for x (the Cs) as
-%   xm = argmin_x{0.5 * ||GI' * x - y||^2_2}
-%   0 <= x_k 
-% In this case the GI and y are the temporal series of the values
-function [coeff, res, resNorm] = anisoDiff(stk, be, en, useHood, hoodSiz)
-    % Calculate the time series of the gradients
-    [GIn, GIs, GIe, GIw] = grad(stk, ...
-                                'valid', true, ...
-                                'type', 'foward', ...
-                                'winSize', 3);
-    GI = cat(4, GIn, GIs, GIe, GIw);
-
-    % Calculate the time series of the differences
-    % TODO: make dependent on GI size
-    y = diff(stk(2:end-1, 2:end-1, :), 1, 3);
-
-
-    % Restrict time if any
-    GI = GI(:, :, be:en, :);
-    y = y(:, :, be:en);
-
-    % Setup constraint problem
-    A = [];
-    b = [];
-    Aeq = [];
-    beq = [];
-    lb = [0, 0, 0, 0];
-    ub = [Inf, Inf, Inf, Inf];
-    x0 = [];        
-    options = optimoptions('lsqlin', ...
-                           'Algorithm', 'trust-region-reflective', ...
-                           'Display', 'off');
-
-    % Calculate the anisotropic parameters
-    [sr, sc, st, ~] = size(GI);
-    coeff = zeros(sr, sc, 4);  % An array to hold the model coefficients
-    resNorm = zeros(sr, sc);  % An array to hold the norm of the residuals 
-
-    % If we are using the neighborhood
-    if useHood
-        hVol = hoodSiz * hoodSiz;
-        hDel = (hoodSiz - 1) / 2;
-        res = zeros(sr, sc, hVol * st);  % An array to hold the residuals at each time step
-        for c = 1 + hDel : sc - hDel
-            for r = 1 + hDel : sr - hDel
-                y1 = reshape(permute(squeeze(y(r-hDel:r+hDel, c-hDel:c+hDel, :)), [3, 1, 2]), hVol * st, 1);
-                GI1 = reshape(permute(squeeze(GI(r-hDel:r+hDel, c-hDel:c+hDel, :, :)), [3, 1, 2, 4]), length(y1), 4);
-                % Calculate the coefficients
-                [coeff(r, c, :), ...
-                 resNorm(r, c), ...
-                 res(r, c, :), ~, ~, ~] = lsqlin(GI1, ... 
-                                                 y1, ...
-                                                 A, b, Aeq, beq, lb, ub, x0, options);
-            end
-        end
-        % Fix boundaries with repetition
-        coeff = padarray(coeff(1 + hDel : sr - hDel, 1 + hDel : sc - hDel, :), [hDel, hDel, 0], 'replicate');
-        res = padarray(res(1 + hDel : sr - hDel, 1 + hDel : sc - hDel, :), [hDel, hDel, 0], 'replicate');
-        resNorm = padarray(resNorm(1 + hDel : sr - hDel, 1 + hDel : sc - hDel), [hDel, hDel], 'replicate');
-    else
-        res = zeros(sr, sc, st);  % An array to hold the residuals at each time step
-        for c = 1:sc
-            for r = 1:sr        
-                % Calculate the coefficients
-                [coeff(r, c, :), ...
-                 resNorm(r, c), ...
-                 res(r, c, :), ~, ~, ~] = lsqlin(squeeze(GI(r, c, :, :)), ... 
-                                                 squeeze(y(r, c, :)), ...
-                                                 A, b, Aeq, beq, lb, ub, x0, options);
-            end
-        end
-    end
-end
-
-
-
-
-% Evaluate the advection-diffusion model
-% Each time step is calculated from previous based on
-%   In = I + dt * (D * (Ixx + Iyy) - VxIx - VyIy)
-% or
-%   y = A' * x
-% where
-%   y = (In - I)
-%   x = dt * [D; Vx; Vy]
-%   A = [(Ixx + Iyy), -Ix, -Iy]
-% which can be solved for x as
-%   xm = argmin_x{0.5 * ||A' * x - y||^2_2}
-%   0 <= x_k 
-% In this case the A and y are the temporal series of the values
-function [coeff, res, resNorm] = advecDiff(stk, be, en, useHood, hoodSiz)
-    % Calculate the time series of gradients and laplacians
-    [Ix, Iy] = gradient(stk);
-    lap = del2(stk);
-
-    % Calculate the time series of the differences
-    % TODO: make dependent on GI size
-    y = diff(stk, 1, 3);
-
-    % Stack and restrict time if any
-    GI = cat(4, lap, -Ix, -Iy);
-    GI = GI(:, :, be:en, :);
-    y = y(:, :, be:en);
-
-    % Setup constraint problem
-    A = [];
-    b = [];
-    Aeq = [];
-    beq = [];
-    lb = [0, -Inf, -Inf];
-    ub = [Inf, Inf, Inf];
-    x0 = [];        
-    options = optimoptions('lsqlin', ...
-                           'Algorithm', 'trust-region-reflective', ...
-                           'Display', 'off');
-
-    % Calculate the advection-diffusion parameters
-    [sr, sc, st, ~] = size(GI);
-    coeff = zeros(sr, sc, 3);  % An array to hold the model coefficients
-    resNorm = zeros(sr, sc);  % An array to hold the norm of the residuals 
-    
-    % If we are using the neighborhood
-    if useHood
-        hVol = hoodSiz * hoodSiz;
-        hDel = (hoodSiz - 1) / 2;
-        res = zeros(sr, sc, hVol * st);  % An array to hold the residuals at each time step
-        for c = 1 + hDel : sc - hDel
-            for r = 1 + hDel : sr - hDel
-                y1 = reshape(permute(squeeze(y(r-hDel:r+hDel, c-hDel:c+hDel, :)), [3, 1, 2]), hVol * st, 1);
-                GI1 = reshape(permute(squeeze(GI(r-hDel:r+hDel, c-hDel:c+hDel, :, :)), [3, 1, 2, 4]), length(y1), 3);
-                % Calculate the coefficients
-                [coeff(r, c, :), ...
-                 resNorm(r, c), ...
-                 res(r, c, :), ~, ~, ~] = lsqlin(GI1, ... 
-                                                 y1, ...
-                                                 A, b, Aeq, beq, lb, ub, x0, options);
-            end
-        end
-        % Fix boundaries with repetition
-        coeff = padarray(coeff(1 + hDel : sr - hDel, 1 + hDel : sc - hDel, :), [hDel, hDel, 0], 'replicate');
-        res = padarray(res(1 + hDel : sr - hDel, 1 + hDel : sc - hDel, :), [hDel, hDel, 0], 'replicate');
-        resNorm = padarray(resNorm(1 + hDel : sr - hDel, 1 + hDel : sc - hDel), [hDel, hDel], 'replicate');
-    else
-        res = zeros(sr, sc, st);  % An array to hold the residuals at each time step
-        for c = 1:sc
-            for r = 1:sr        
-                % Calculate the coefficients
-                [coeff(r, c, :), ...
-                 resNorm(r, c), ...
-                 res(r, c, :), ~, ~, ~] = lsqlin(squeeze(GI(r, c, :, :)), ... 
-                                                 squeeze(y(r, c, :)), ...
-                                                 A, b, Aeq, beq, lb, ub, x0, options);
-            end
-        end
-    end
-end
-
-
-
-
-% Evaluate the advection-diffusion-source model
-% Each time step is calculated from prefious based on
-%   In = I + dt * (D * (Ixx + Iyy) - VxIx - VyIy + s) 
-% or
-%   y = A' * x
-% where
-%   y = (In - I)
-%   x = dt * [D; Vx; Vy; s]
-%   A = [(Ixx + Iyy), -Ix, -Iy, 1]
-% which can be solved for x as
-%   xm = argmin_x{0.5 * ||A' * x - y||^2_2}
-%   0 <= x_k (except s)
-% In this case the A and y are the temporal series of the values
-function [coeff, res, resNorm] = advecDiffSrc(stk, be, en, useHood, hoodSiz)
-    % Calculate the time series of gradients and laplacians
-    [Ix, Iy] = gradient(stk);
-    lap = del2(stk);
-
-    % Calculate the time series of the differences
-    % TODO: make dependent on GI size
-    y = diff(stk, 1, 3);
-
-    % Stack and restrict time if any
-    GI = cat(4, lap, -Ix, -Iy, ones(size(lap)));
-    GI = GI(:, :, be:en, :);
-    y = y(:, :, be:en);
-
-    % Setup constraint problem
-    A = [];
-    b = [];
-    Aeq = [];
-    beq = [];
-    lb = [0, -Inf, -Inf, -Inf];
-    ub = [Inf, Inf, Inf, Inf];
-    x0 = [];        
-    options = optimoptions('lsqlin', ...
-                           'Algorithm', 'trust-region-reflective', ...
-                           'Display', 'off');
-
-    % Calculate the advection-diffusion+source parameters
-    [sr, sc, st, ~] = size(GI);
-    coeff = zeros(sr, sc, 4);  % An array to hold the model coefficients
-    resNorm = zeros(sr, sc);  % An array to hold the norm of the residuals 
-    
-    % If we are using the neighborhood
-    if useHood
-        hVol = hoodSiz * hoodSiz;
-        hDel = (hoodSiz - 1) / 2;
-        res = zeros(sr, sc, hVol * st);  % An array to hold the residuals at each time step
-        for c = 1 + hDel : sc - hDel
-            for r = 1 + hDel : sr - hDel
-                y1 = reshape(permute(squeeze(y(r-hDel:r+hDel, c-hDel:c+hDel, :)), [3, 1, 2]), hVol * st, 1);
-                GI1 = reshape(permute(squeeze(GI(r-hDel:r+hDel, c-hDel:c+hDel, :, :)), [3, 1, 2, 4]), length(y1), 4);
-                % Calculate the coefficients
-                [coeff(r, c, :), ...
-                 resNorm(r, c), ...
-                 res(r, c, :), ~, ~, ~] = lsqlin(GI1, ... 
-                                                 y1, ...
-                                                 A, b, Aeq, beq, lb, ub, x0, options);
-            end
-        end
-        % Fix boundaries with repetition
-        coeff = padarray(coeff(1 + hDel : sr - hDel, 1 + hDel : sc - hDel, :), [hDel, hDel, 0], 'replicate');
-        res = padarray(res(1 + hDel : sr - hDel, 1 + hDel : sc - hDel, :), [hDel, hDel, 0], 'replicate');
-        resNorm = padarray(resNorm(1 + hDel : sr - hDel, 1 + hDel : sc - hDel), [hDel, hDel], 'replicate');
-    else
-        res = zeros(sr, sc, st);  % An array to hold the residuals at each time step
-        for c = 1:sc
-            for r = 1:sr        
-                % Calculate the coefficients
-                [coeff(r, c, :), ...
-                 resNorm(r, c), ...
-                 res(r, c, :), ~, ~, ~] = lsqlin(squeeze(GI(r, c, :, :)), ... 
-                                                 squeeze(y(r, c, :)), ...
-                                                 A, b, Aeq, beq, lb, ub, x0, options);
-            end
-        end
-    end
-end
 
 
 
@@ -889,147 +644,12 @@ end
 
 
 
-% Calculate NSEW gradients (2D and 3D)
-function [an, as, ae, aw] = grad(array, varargin)
-    % Parse parameters
-    p = inputParser;
-
-    addRequired(p, 'array');
-
-    addOptional(p, 'valid', false);
-    addOptional(p, 'type', 'forward');
-    addOptional(p, 'winSize', 5);
-
-    parse(p, array, varargin{:});
-
-    a = p.Results.array;
-    valid = p.Results.valid;
-    type = p.Results.type;
-    winSize = p.Results.winSize;
-
-    % Calculate the 1-diff gradients ignoring the z-direction. 
-    an = circshift(a, -1, 1) - a;
-    as = circshift(a, 1, 1) - a;
-    ae = circshift(a, -1, 2) - a;
-    aw = circshift(a, 1, 2) - a;
-
-    % Check the approach
-    switch type
-        case 'central'
-            [ae, an] = gradient(array);
-            aw = -ae;
-            as = -an;
-        case 'average'
-            flt = fspecial('disk', floor(winSize/2));
-            flt = fspecial('gaussian', 8*floor(winSize/2), floor(winSize/2));
-            switch ndims(a)
-                case 2
-                    A = cat(3, an, as, ae, aw);
-                case 3
-                    A = cat(4, an, as, ae, aw);
-            end
-            AN = imfilter(A, flt);
-            switch ndims(a)
-                case 2
-                    an = AN(:, :, 1);
-                    as = AN(:, :, 2);
-                    ae = AN(:, :, 3);
-                    aw = AN(:, :, 4);            
-                case 3
-                    an = AN(:, :, :, 1);
-                    as = AN(:, :, :, 2);
-                    ae = AN(:, :, :, 3);
-                    aw = AN(:, :, :, 4);            
-            end
-        case 'svd'
-            switch ndims(a)
-                case 2
-                    [an, as, ae, aw] = gradSVD(an, as, ae, aw, winSize);
-                case 3
-                    % Repeat above for each slice
-                    for sl = 1:size(a, 3)
-                        [an(:, :, sl), ...
-                         as(:, :, sl), ...
-                         ae(:, :, sl), ...
-                         aw(:, :, sl)] = gradSVD(an(:, :, sl), ...
-                                                 as(:, :, sl), ...
-                                                 ae(:, :, sl), ...
-                                                 aw(:, :, sl), ...
-                                                 winSize);                   
-                    end
-            end                        
-    end
-
-    % If we want to use only the 'valid' data, crop
-    if valid 
-        switch ndims(a)
-            case 2
-                an = an(2 : end - 1, 2 : end - 1);
-                as = as(2 : end - 1, 2 : end - 1);
-                ae = ae(2 : end - 1, 2 : end - 1);
-                aw = aw(2 : end - 1, 2 : end - 1);
-            case 3
-                an = an(2 : end - 1, 2 : end - 1, :);
-                as = as(2 : end - 1, 2 : end - 1, :);
-                ae = ae(2 : end - 1, 2 : end - 1, :);
-                aw = aw(2 : end - 1, 2 : end - 1, :);
-            otherwise  % Should never end here
-                an = zeros(size(a));
-                as = an;
-                ae = an;
-                aw = an;
-        end
-        return
-    end
-
-    % Otherwise set gradient to 0 at the borders. Equivalent to repeating
-    % the value in that direction.
-    switch ndims(a)
-        case 2
-            an(end, :) = 0;
-            as(1, :) = 0;
-            ae(:, end) = 0;
-            aw(:, 1) = 0;
-        case 3
-            an(end, :, :) = 0;
-            as(1, :, :) = 0;
-            ae(:, end, :) = 0;
-            aw(:, 1, :) = 0;
-        otherwise  % Should never end here
-            an = zeros(size(a));
-            as = an;
-            ae = an;
-            aw = an;
-    end
-end
 
 
 
 
 
 
-% Calculate SVD of gradients within window
-function [an, as, ae, aw] = gradSVD(an, as, ae, aw, winSize)
-    % Stack gradients
-    A = cat(3, an, as, ae, aw);
-    AN = zeros(size(A));
 
-    % Calculate SVD in blocks of the given windows size
-    dx = floor(winSize/2);
-    dy = dx;
-    for c = dx+1:size(A,1)-dx
-        for r = dy+1:size(A,2)-dy
-            s = A(c-dx:c+dx, r-dy:r+dy, :);
-            s = reshape(permute(s, [3, 1, 2]), 4, [])';
-            [u, s, v] = svds(s, 1);
-            AN(c, r, :) = v;
-        end
-    end
 
-    % Extract individual components
-    an = AN(:, :, 1);
-    as = AN(:, :, 2);
-    ae = AN(:, :, 3);
-    aw = AN(:, :, 4);            
-end
     
