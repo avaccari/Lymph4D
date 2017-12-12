@@ -27,7 +27,9 @@
 %   xm = argmin_x{0.5 * ||GI' * x - y||^2_2}
 %   0 <= x_k 
 % In this case the GI and y are the temporal series of the values
-function [coeff, res, resNorm] = modAnisoDiff(stk, be, en, useHood, hoodSiz)
+% TODO: Sliding temporal window not yet implemented. Need to find a way to
+%       display all the results or mean, etc...
+function [coeff, res, resNorm] = modAnisoDiff(stk, be, en, useTimWin, winSiz, useHood, hoodSiz)
     % Calculate the time series of the gradients
     [GIn, GIs, GIe, GIw] = grad(stk, ...
                                 'valid', true, ...

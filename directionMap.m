@@ -18,13 +18,16 @@ function handles = directionMap(handles)
     method = handles.direction.mapType;
     useHood = handles.direction.useHood;
     hoodSiz = handles.direction.hoodSiz;
+    useTimWin = handles.direction.useTimeWin;
+    winSiz = handles.direction.timeWinSiz;
+    useSmooth = handles.direction.smoothModel;
 
     % Notify user that saving is ongoing
     h = msgbox('Evaluating directional map...');
     
     % Define the base image
-    img = mean(handles.stackImg, 4);
-    img = img(:, :, handles.sliceIdx);
+    lmf = handles.stackImg(:, :, handles.sliceIdx, end) - handles.stackImg(:, :, handles.sliceIdx, 1); 
+    img = lmf;
     
     % Repeat for template, if there is one
     if isfield(handles, 'tmpl')
@@ -42,9 +45,23 @@ function handles = directionMap(handles)
         % Extract the temporal stack for the current slice
         stk = squeeze(handles.stackImg(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
 
+        % If the user wants to smooth the images before fitting the model
+        if useSmooth
+            % Smooth with 3x3 Gaussian
+            fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
+            stk = imfilter(stk, fil, 'replicate', 'same');
+        end        
+        
         % Repeat for template, if there is one
         if isfield(handles, 'tmpl')
             stkTmpl = squeeze(handles.stackTmpl(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
+
+            % If the user wants to smooth the images before fitting the model
+            if useSmooth
+                % Smooth with 3x3 Gaussian
+                fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
+                stkTmpl = imfilter(stkTmpl, fil, 'replicate', 'same');
+            end        
         end
                 
         % Define the polygon mask
@@ -69,7 +86,8 @@ function handles = directionMap(handles)
     chnls = {'Max-Min', ...
              'Luminance', ...
              'Michelson', ...
-             'C.Var.'};
+             'C.Var.', ...
+             'Last-First'};
     lMax = max(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
     lMin = min(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
     lAvg = mean(handles.stackImg(:, :, handles.sliceIdx, :), 4);
@@ -82,7 +100,8 @@ function handles = directionMap(handles)
                mm, ...
                lum, ...
                mic, ...
-               cvar);
+               cvar, ...
+               lmf);
                
     % Repeat for template, if there is one
     if isfield(handles, 'tmpl')
@@ -135,7 +154,10 @@ function handles = directionMap(handles)
             chnls = [chnls, nc];
 
             % Evaluate anisotropic diffusion model on current stack
-            [coeff, res, resNorm] = modAnisoDiff(stk, be, en, useHood, hoodSiz);
+            [coeff, res, resNorm] = modAnisoDiff(stk, ...
+                                                 be, en, ...
+                                                 useTimWin, winSiz, ...
+                                                 useHood, hoodSiz);
             
             % Store results in overlays
             [M, I] = max(coeff, [], 3);
@@ -152,7 +174,10 @@ function handles = directionMap(handles)
             if isfield(handles, 'tmpl')
                 
                 % Evaluate anisotropic diffusion model on template stack
-                [coeff, res, resNorm] = modAnisoDiff(stkTmpl, be, en, useHood, hoodSiz);
+                [coeff, res, resNorm] = modAnisoDiff(stkTmpl, ...
+                                                     be, en, ...
+                                                     useTimWin, winSiz, ...
+                                                     useHood, hoodSiz);
 
                 % Store data in overlays
                 [M, I] = max(coeff, [], 3);
@@ -174,8 +199,8 @@ function handles = directionMap(handles)
             % Define model results
             nc = {'Diff Coeff', ...
                   'Reluctance', ...
-                  'Vmag', ...
                   'Péclet Num.', ...
+                  'Vmag', ...
                   'Vdir', ...
                   'Vx', ...
                   'Vy', ...
@@ -184,7 +209,10 @@ function handles = directionMap(handles)
             chnls = [chnls, nc];
 
             % Evaluate advection-diffusion model on current stack
-            [coeff, res, resNorm] = modAdvecDiff(stk, be, en, useHood, hoodSiz);
+            [coeff, res, resNorm] = modAdvecDiff(stk, ...
+                                                 be, en, ...
+                                                 useTimWin, winSiz, ...
+                                                 useHood, hoodSiz);
 
             % Store data in overlays
             ovrl = cat(3, ovrl, zeros([size(img), snc]));
@@ -200,8 +228,8 @@ function handles = directionMap(handles)
             ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                     coeff(:, :, 1), ...
                                                                     relc, ...
-                                                                    vmag, ...
                                                                     pec, ...
+                                                                    vmag, ...
                                                                     vdir, ...
                                                                     coeff(:, :, 2:end), ...
                                                                     resNorm);
@@ -210,7 +238,10 @@ function handles = directionMap(handles)
             if isfield(handles, 'tmpl')
 
                 % Evaluate advection-diffusion model on template stack
-                [coeff, res, resNorm] = modAdvecDiff(stkTmpl, be, en, useHood, hoodSiz);
+                [coeff, res, resNorm] = modAdvecDiff(stkTmpl, ...
+                                                     be, en, ...
+                                                     useTimWin, winSiz, ...
+                                                     useHood, hoodSiz);
 
                 % Store data in overlays
                 ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
@@ -224,8 +255,8 @@ function handles = directionMap(handles)
                 ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                             coeff(:, :, 1), ...
                                                                             relc, ...
-                                                                            vmag, ...
                                                                             pec, ...
+                                                                            vmag, ...
                                                                             vdir, ...
                                                                             coeff(:, :, 2:end), ...
                                                                             resNorm);
@@ -242,8 +273,8 @@ function handles = directionMap(handles)
             % Define model results
             nc = {'Diff Coeff', ...
                   'Reluctance', ...
-                  'Vmag', ...
                   'Péclet Num.', ...
+                  'Vmag', ...
                   'Vdir', ...
                   'Vx', ...
                   'Vy', ...
@@ -253,7 +284,10 @@ function handles = directionMap(handles)
             chnls = [chnls, nc];
 
             % Evaluate advection-diffusion-source model on current stack
-            [coeff, res, resNorm] = modAdvecDiffSrc(stk, be, en, useHood, hoodSiz);
+            [coeff, res, resNorm] = modAdvecDiffSrc(stk, ...
+                                                    be, en, ...
+                                                    useTimWin, winSiz, ...
+                                                    useHood, hoodSiz);
 
             % Store data in overlays
             ovrl = cat(3, ovrl, zeros([size(img), snc]));
@@ -269,8 +303,8 @@ function handles = directionMap(handles)
             ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                     coeff(:, :, 1), ...
                                                                     relc, ...
-                                                                    vmag, ...
                                                                     pec, ...
+                                                                    vmag, ...
                                                                     vdir, ...
                                                                     coeff(:, :, 2:end), ...
                                                                     resNorm);
@@ -279,7 +313,10 @@ function handles = directionMap(handles)
             if isfield(handles, 'tmpl')
 
                 % Evaluate advection-diffusion-source model on template stack
-                [coeff, res, resNorm] = modAdvecDiffSrc(stkTmpl, be, en, useHood, hoodSiz);
+                [coeff, res, resNorm] = modAdvecDiffSrc(stkTmpl,  ...
+                                                        be, en, ...
+                                                        useTimWin, winSiz, ...
+                                                        useHood, hoodSiz);
 
                 % Store data in overlays
                 ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
@@ -293,8 +330,8 @@ function handles = directionMap(handles)
                 ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                             coeff(:, :, 1), ...
                                                                             relc, ...
-                                                                            vmag, ...
                                                                             pec, ...
+                                                                            vmag, ...
                                                                             vdir, ...
                                                                             coeff(:, :, 2:end), ...
                                                                             resNorm);
@@ -338,6 +375,7 @@ function handles = directionMap(handles)
 
     % Overlay on grayscale version of image
     fig = figure(handles.figs.dirMap);
+    fig.Units = 'normalized';
     pos = [0.05, 0.1, 0.9, 0.8];
     if isfield(handles, 'tmpl')
         posTmpl = [0.05, 0.1, 0.4, 0.8];
@@ -352,7 +390,7 @@ function handles = directionMap(handles)
     end
 
     % Convert orignal image to rgb grayscale
-    img = repmat(1 - imadjust(mat2gray(img)), 1, 1, 3);
+    img = repmat(mat2gray(img), 1, 1, 3);
     ax = subplot('position', pos, 'parent', fig);
     imagesc(ax, img);
     title(['Directional Analysis (Temporal stacks: ', ...
@@ -369,6 +407,7 @@ function handles = directionMap(handles)
         hold(axT, 'on');
     end
 
+    % Show first channel
     channel = 1;
     data = ovrl(:, :, channel);
     h = imagesc(ax, data);
@@ -409,6 +448,16 @@ function handles = directionMap(handles)
             mM = minmax([mM, mMT]);            
             set(ax, 'CLim', mM);
             set(axT, 'CLim', mM);
+        end
+        
+        % If Vmag, show quiver button
+        hqtgl.Visible = 'off';
+        hqsca.Visible = 'off';
+        hqsmp.Visible = 'off';
+        if strcmp(chnls{channel}, 'Vmag')
+            hqtgl.Visible = 'on';
+            hqsca.Visible = 'on';
+            hqsmp.Visible = 'on';
         end
         
         % Check for special color maps
@@ -468,6 +517,8 @@ function handles = directionMap(handles)
         end        
     end
 
+
+
     % Add button with callback to smooth the results
     uicontrol('parent', fig, ...
               'style', 'pushbutton', ...
@@ -499,6 +550,8 @@ function handles = directionMap(handles)
             set(axT, 'CLim', mM);
         end
     end
+
+
 
     % Add button with callback to reset the results
     uicontrol('parent', fig, ...
@@ -542,6 +595,8 @@ function handles = directionMap(handles)
        
     end
 
+
+
     % Add button with callback to apply velocity magnitude mask
     uicontrol('parent', fig, ...
               'style', 'pushbutton', ...
@@ -555,14 +610,19 @@ function handles = directionMap(handles)
         alpha = ovrl(:, :, idx);
         % Set arbitrary threshold at 50%
         alpha = alpha / (0.5 * max(alpha(:)));
+        % Apply original mask
+        alpha = alpha .* mask;
         set(h, 'AlphaData', alpha);   
         if isfield(handles, 'tmpl')
             alpha = ovrlTmpl(:, :, idx);
             % Set arbitrary threshold at 50%
             alpha = alpha / (0.5 * max(alpha(:)));
+            % Apply original mask
+            alpha = alpha .* mask;          
             set(hT, 'AlphaData', alpha);   
         end
     end
+
 
 
     satLevel = 0.1;
@@ -622,6 +682,78 @@ function handles = directionMap(handles)
         colSaturation(src, evt);
     end
 
+    % Add button to toggle quiver
+    hqtgl = uicontrol('parent', fig, ...
+                      'visible', 'off', ...
+                      'style', 'toggleButton', ...
+                      'string', 'Qvr', ...
+                      'units', 'normalized', ...
+                      'position', [0.5, 0.95, 0.05, 0.05], ...
+                      'tag', 'QTgl', ...
+                      'callback', @drawQuiver);
+    
+    % Add silder to control quiver sampling
+    hqsmp = uicontrol('parent', fig, ...
+                      'visible', 'off', ...
+                      'style', 'slider', ...
+                      'min', 0, ...
+                      'max', 1, ...
+                      'SliderStep', [0.1, 0.1], ...
+                      'value', 0, ...
+                      'units', 'normalized', ...
+                      'tag', 'QSmp', ...
+                      'callback', @drawQuiver, ...
+                      'position', [0.55, 0.95, 0.1, 0.05]);
+
+    % Add slider to control quiver scaling
+    hqsca = uicontrol('parent', fig, ...
+                      'visible', 'off', ...
+                      'style', 'slider', ...
+                      'min', 0.1, ...
+                      'max', 2, ...
+                      'SliderStep', [0.1, 0.1], ...
+                      'value', 0.1, ...
+                      'units', 'normalized', ...
+                      'tag', 'QSca', ...
+                      'callback', @drawQuiver, ...
+                      'position', [0.65, 0.95, 0.1, 0.05]);
+    function drawQuiver(src, evt)
+        if isfield(handles, 'hq')
+            delete(handles.hq);
+        end
+        % If we are removing the quiver, delete and leave
+        if strcmp(src.Tag, 'QTgl') && src.Value == 0
+            hqsca.Value = 0.1;
+            hqsmp.Value = 0;
+            return;
+        end
+            
+        % Extract velocity data
+        vx = ovrl(:, :, find(strcmp(chnls, 'Vx')));
+        vy = ovrl(:, :, find(strcmp(chnls, 'Vy')));
+        
+        % If we are changing sampling
+        sampMax = min(cmM(2) - cmM(1), rmM(2) - rmM(1)) / 2;
+        sampling = 1 + floor(hqsmp.Value * sampMax);
+
+        % Sample coordinates info
+        [cc, rr] = meshgrid(cmM(1):sampling:cmM(2), rmM(1):sampling:rmM(2));
+        
+        % Evaluate velocity at sampled coordinates
+        vxt = impixel(vx, rr, cc);
+        vxs = reshape(vxt(: , 1), size(rr));
+        vyt = impixel(vy, rr, cc);
+        vys = reshape(vyt(: , 1), size(rr));
+        
+        % If we are changing scaling
+        scaling = 10 * hqsca.Value;              
+       
+        handles.hq = quiver(rr, cc, vxs, vys, ...
+                            scaling, ...
+                            'Color', [1, 1, 1], ...
+                            'LineWidth', 1.0);    
+    end
+
 
 
     % Add button with callback to calculate differences between current and template
@@ -632,6 +764,76 @@ function handles = directionMap(handles)
               'position', [0.0, 0.0, 0.15, 0.05], ...
               'callback', @(hObject, eventdata)compDirection(hObject, eventdata, handles));
 
+          
+    
+    % Add text block to show values under mouse
+    info = uicontrol('parent', fig, ...
+                     'style', 'text', ...
+                     'string', 'Velocity', ...
+                     'horizontalAlignment', 'left', ...
+                     'units', 'normalized', ...
+                     'position', [0.16, 0.0, 0.33, 0.06]);
+                 
+       
+                 
+    % Configure the figure to provide live data as the mouse is moved
+    fig.WindowButtonMotionFcn = @showVelInfo;    
+    function showVelInfo(src, evt)
+        % Get location of mouse respect to application window
+        mPos = get(src, 'currentPoint');  % (0,0) is bottom-left
+        pX = mPos(1);
+        pY = mPos(2);
+
+        % Get information about location and size of axes
+        maLoc = get(ax, 'Position');
+        maL = maLoc(1);
+        maB = maLoc(2);
+        maW = maLoc(3);
+        maH = maLoc(4);
+
+        % Check if within image limits
+        if pX >= maL && pY >= maB
+            maX = pX - maL;
+            maY = pY - maB;
+            if maX <= maW && maY <= maH
+                cPos = get(ax, 'CurrentPoint');
+                cPos = round(cPos(1, 1:2));
+                cPos = [cPos(2), cPos(1)];
+                posIdx = num2cell(cPos);
+                try
+                    val = ovrl(posIdx{:}, channel);
+                catch ME
+                    val = 0;
+                end
+                
+                % If it is velocity mag or dir, show both numbers
+                if strcmp(chnls{channel}, 'Vmag') 
+                    try
+                        val2 = ovrl(posIdx{:}, channel + 1);
+                    catch ME
+                        val2 = 0;
+                    end
+                    txt = ['Vmag: ', num2str(val, '%3.2f'), ...
+                           ' Vdir: ', num2str(val2, '%3.f')];
+                elseif strcmp(chnls{channel}, 'Vdir')
+                    try
+                        val2 = ovrl(posIdx{:}, channel - 1);
+                    catch ME
+                        val2 = 0;
+                    end
+                    txt = ['Vmag: ', num2str(val2, '%3.2f'), ...
+                           ' Vdir: ', num2str(val, '%3.f')];
+                else
+                    txt = [chnls{channel}, ': ', num2str(val, '%3.2e')];
+                end
+                
+                info.String = txt;
+                
+            end
+        end
+
+    end
+          
 end
 
 

@@ -26,7 +26,7 @@
 %   xm = argmin_x{0.5 * ||A' * x - y||^2_2}
 %   0 <= x_k 
 % In this case the A and y are the temporal series of the values
-function [coeff, res, resNorm] = modAdvecDiff(stk, be, en, useHood, hoodSiz)
+function [coeff, res, resNorm] = modAdvecDiff(stk, be, en, useTimWin, winSiz, useHood, hoodSiz)
     % Calculate the time series of gradients and laplacians
     [Ix, Iy] = gradient(stk);
     lap = del2(stk);
@@ -37,9 +37,45 @@ function [coeff, res, resNorm] = modAdvecDiff(stk, be, en, useHood, hoodSiz)
 
     % Stack and restrict time if any
     GI = cat(4, lap, -Ix, -Iy);
-    GI = GI(:, :, be:en, :);
-    y = y(:, :, be:en);
 
+    % Check if we are using the time sliding windows
+    if useTimWin
+        % Loop sliding the window
+        for tIdx = be:en - winSiz + 1
+            % Extract temporal slices
+            GIs = GI(:, :, tIdx:tIdx + winSiz - 1, :);
+            ys = y(:, :, tIdx:tIdx + winSiz - 1);
+            [coeff(:, :, :, tIdx), ...
+             res(:, :, :, tIdx), ...
+             resNorm(:, :, tIdx)] = evalAdvecDiff(GIs, ys, useHood, hoodSiz);
+        end
+        
+        % ************************ TEMPORARY ***********************
+        % Extract values corresponding to max velocity mag
+        vmag = sqrt(coeff(:, :, 2, :).^2 + coeff(:, :, 3, :).^2);
+        [~, vMaxIdx] = max(vmag, [], 4);
+        [sc, sr] = size(coeff(:,:,1,1));
+        for i=1:sc
+            for j=1:sr
+                ncoeff(i,j,:)=coeff(i,j,:,vMaxIdx(i,j));
+                nres(i,j,:)=res(i,j,:,vMaxIdx(i,j));
+                nresNorm(i, j)=resNorm(i, j,vMaxIdx(i,j));
+           end
+        end
+        coeff = ncoeff;
+        res = nres;
+        resNorm = nresNorm;
+ 
+    else
+        GI = GI(:, :, be:en, :);
+        y = y(:, :, be:en);
+        [coeff, res, resNorm] = evalAdvecDiff(GI, y, useHood, hoodSiz);
+    end
+
+end
+
+% Evaluate model
+function [coeff, res, resNorm] = evalAdvecDiff(GI, y, useHood, hoodSiz)
     % Setup constraint problem
     A = [];
     b = [];

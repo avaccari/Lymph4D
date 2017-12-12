@@ -37,7 +37,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 04-Oct-2017 23:36:57
+% Last Modified by GUIDE v2.5 27-Nov-2017 18:59:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -109,7 +109,9 @@ set(handles.setAlignMtdPop, 'Value', 2);
 handles.direction.mapType = 1;
 handles.direction.hoodSiz = 3;
 handles.direction.useHood = false;
-
+handles.direction.useTimeWin = false;
+handles.direction.timeWinSiz = 3;
+handles.direction.smoothModel = false;
 
 % Figures id
 handles.figs.lineAnalyze = 1;
@@ -810,13 +812,13 @@ end
 
 
 
-% --- Executes on button press in setDIrHoodChk.
-function setDIrHoodChk_Callback(hObject, eventdata, handles)
-% hObject    handle to setDIrHoodChk (see GCBO)
+% --- Executes on button press in setDirHoodChk.
+function setDirHoodChk_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirHoodChk (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of setDIrHoodChk
+% Hint: get(hObject,'Value') returns toggle state of setDirHoodChk
 handles = guidata(hObject);
 
 handles.direction.useHood = get(hObject, 'Value');
@@ -953,8 +955,77 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on button press in setDirTempWinChk.
+function setDirTempWinChk_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirTempWinChk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of setDirTempWinChk
+handles = guidata(hObject);
+
+handles.direction.useTimeWin = get(hObject, 'Value');
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
 
 
+
+function setDirTempWinSizEd_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirTempWinSizEd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of setDirTempWinSizEd as text
+%        str2double(get(hObject,'String')) returns contents of setDirTempWinSizEd as a double
+handles = guidata(hObject);
+
+timeWinSiz = str2double(get(hObject, 'String'));
+
+% Check if greater than number of selected slices or less than 2
+if timeWinSiz > handles.dirTempEnd - handles.dirTempStart - 1
+    timeWinSiz = handles.dirTempEnd - handles.dirTempStart - 1;
+elseif timeWinSiz < 2
+    timeWinSiz = 2;
+end
+
+% Update gui
+set(hObject, 'String', num2str(timeWinSiz));
+
+handles.direction.timeWinSiz = timeWinSiz;
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setDirTempWinSizEd_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setDirTempWinSizEd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+% --- Executes on button press in setDirSmthModChk.
+function setDirSmthModChk_Callback(hObject, eventdata, handles)
+% hObject    handle to setDirSmthModChk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of setDirSmthModChk
+handles = guidata(hObject);
+
+handles.direction.smoothModel = get(hObject, 'Value');
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
 
 
 
