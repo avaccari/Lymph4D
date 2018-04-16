@@ -20,6 +20,13 @@ lineVal = handles.lineVal;
 lineVal(:, sum(handles.lineVal.^2) == 0) = [];
 lineSz = size(lineVal, 2);
 
+% TODO: scaling information should be extracted when importing the DICOM
+% file or set to a default of 1 at startup or in the stack configuration
+% module. This and other modules should only read the value.
+% Suggested variables:
+% - handles.expInfo.ds [dr, dc, dz] (Pixel.Spacing from DICOM)
+% - handles.expInfo.dt [dt]
+
 % Extract spatial scaling info (from first file)
 try
     scaling = [handles.expInfo.full(1, 1).PixelSpacing; ...  % dr, dc ??

@@ -21,6 +21,10 @@ function handles = directionMap(handles)
     useTimWin = handles.direction.useTimeWin;
     winSiz = handles.direction.timeWinSiz;
     useSmooth = handles.direction.smoothModel;
+%     ds = handles.expInfo.ds;
+%     dt = handles.expInfo.dt;
+    ds=1;
+    dt=1;
 
     % Notify user that saving is ongoing
     h = msgbox('Evaluating directional map...');
@@ -156,6 +160,7 @@ function handles = directionMap(handles)
             % Evaluate anisotropic diffusion model on current stack
             [coeff, res, resNorm] = modAnisoDiff(stk, ...
                                                  be, en, ...
+                                                 ds, dt, ...
                                                  useTimWin, winSiz, ...
                                                  useHood, hoodSiz);
             
@@ -176,6 +181,7 @@ function handles = directionMap(handles)
                 % Evaluate anisotropic diffusion model on template stack
                 [coeff, res, resNorm] = modAnisoDiff(stkTmpl, ...
                                                      be, en, ...
+                                                     ds, dt, ...
                                                      useTimWin, winSiz, ...
                                                      useHood, hoodSiz);
 
@@ -211,6 +217,7 @@ function handles = directionMap(handles)
             % Evaluate advection-diffusion model on current stack
             [coeff, res, resNorm] = modAdvecDiff(stk, ...
                                                  be, en, ...
+                                                 ds, dt, ...
                                                  useTimWin, winSiz, ...
                                                  useHood, hoodSiz);
 
@@ -240,6 +247,7 @@ function handles = directionMap(handles)
                 % Evaluate advection-diffusion model on template stack
                 [coeff, res, resNorm] = modAdvecDiff(stkTmpl, ...
                                                      be, en, ...
+                                                     ds, dt, ...
                                                      useTimWin, winSiz, ...
                                                      useHood, hoodSiz);
 
@@ -286,6 +294,7 @@ function handles = directionMap(handles)
             % Evaluate advection-diffusion-source model on current stack
             [coeff, res, resNorm] = modAdvecDiffSrc(stk, ...
                                                     be, en, ...
+                                                    ds, dt, ...
                                                     useTimWin, winSiz, ...
                                                     useHood, hoodSiz);
 
@@ -315,6 +324,7 @@ function handles = directionMap(handles)
                 % Evaluate advection-diffusion-source model on template stack
                 [coeff, res, resNorm] = modAdvecDiffSrc(stkTmpl,  ...
                                                         be, en, ...
+                                                        ds, dt, ...
                                                         useTimWin, winSiz, ...
                                                         useHood, hoodSiz);
 
@@ -376,6 +386,7 @@ function handles = directionMap(handles)
     % Overlay on grayscale version of image
     fig = figure(handles.figs.dirMap);
     fig.Units = 'normalized';
+    fig.Resize = 'off';  % Prevent user from resizing the figure
     pos = [0.05, 0.1, 0.9, 0.8];
     if isfield(handles, 'tmpl')
         posTmpl = [0.05, 0.1, 0.4, 0.8];
@@ -422,6 +433,35 @@ function handles = directionMap(handles)
         colorbar(axT);
     end
 
+    % Show pop-up window with averages for original analysis polygon
+    origMask = handles.drawing.poly.createMask(h);
+    origMskd = ovrl .* repmat(origMask, 1, 1, size(ovrl, 3));
+    origMskd(origMskd == 0) = nan;
+    vals = squeeze(nanmean(nanmean(origMskd, 1), 2));
+    txt = {'Mean values within original polygon:'};
+    for ch = 1 : size(ovrl, 3)
+%             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
+        if strcmp(chnls{ch}, 'Vmag') 
+            vm = sqrt(vals(ch + 2)^2 + vals(ch + 3)^2);
+            txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
+        elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
+            txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
+        elseif strcmp(chnls{ch}, 'Vdir')
+            vd = atan2d(vals(ch + 2), vals(ch + 1));
+            txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
+        else
+            txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
+        end
+    end
+    txt{end + 1} = ['Pixels within polygon:', num2str(nnz(origMask))];
+    msgbox(txt,'Avgs in original poly');
+
+
+
+    
+    
+    
+    
     % Add channel selector
     hpop = uicontrol('parent', fig, ...
                      'style', 'popup', ...
@@ -537,14 +577,17 @@ function handles = directionMap(handles)
         
         % Update screen
         data = ovrl(:, :, channel);
-        mM = minmax(data(:)');
         set(h, 'CData', data);
+ 
+        mM = minmax(data(:)');
         set(ax, 'CLim', mM);
+
         if isfield(handles, 'tmpl')
             dataTmpl = ovrlTmpl(:, :, channel);
-            mMT = minmax(dataTmpl(:)');
             set(hT, 'CData', dataTmpl);
-            % Same scales
+
+            % Same color scales
+            mMT = minmax(dataTmpl(:)');
             mM = minmax([mM, mMT]);
             set(ax, 'CLim', mM);
             set(axT, 'CLim', mM);
@@ -568,10 +611,12 @@ function handles = directionMap(handles)
 
         % Update screen
         data = ovrl(:, :, channel);
-        mM = minmax(data(:)');
         set(h, 'CData', data);
+
+        mM = minmax(data(:)');
         set(ax, 'CLim', mM);
         set(h, 'AlphaData', mask);
+
         if isfield(handles, 'tmpl')
             dataTmpl = ovrlTmpl(:, :, channel);
             mMT = minmax(dataTmpl(:)');
@@ -832,6 +877,49 @@ function handles = directionMap(handles)
             end
         end
 
+    end
+
+    % Add button with callback to do polygon analysis
+    uicontrol('parent', fig, ...
+              'style', 'pushbutton', ...
+              'string', 'Polygon', ...
+              'units', 'normalized', ...
+              'position', [0.0, 0.90, 0.1, 0.05], ...
+              'callback', @polygon);
+    function polygon(src, evt)
+        poly = impoly(ax);
+        showData(false);
+        poly.addNewPositionCallback(@newPos);
+        function newPos(src, evt)
+            showData(true);
+        end
+        function showData(update)
+            pMask = poly.createMask(h);
+            mskd = ovrl .* repmat(pMask, 1, 1, size(ovrl, 3));
+            mskd(mskd == 0) = nan;
+            vals = squeeze(nanmean(nanmean(mskd, 1), 2));
+            txt = {'Mean values within polygon:'};
+            for ch = 1 : size(ovrl, 3)
+    %             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
+                if strcmp(chnls{ch}, 'Vmag') 
+                    vm = sqrt(vals(ch + 2)^2 + vals(ch + 3)^2);
+                    txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
+                elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
+                    txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
+                elseif strcmp(chnls{ch}, 'Vdir')
+                    vd = atan2d(vals(ch + 2), vals(ch + 1));
+                    txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
+                else
+                    txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
+                end
+            end
+            txt{end + 1} = ['Pixels within polygon:', num2str(nnz(pMask))];
+            if update
+                msgbox(txt,'Avgs in selected poly', 'replace');
+            else
+                msgbox(txt,'Avgs in selected poly');
+            end
+        end
     end
           
 end

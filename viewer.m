@@ -1,3 +1,4 @@
+
 % Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
 
 % This program is free software: you can redistribute it and/or modify
@@ -37,7 +38,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 27-Nov-2017 18:59:09
+% Last Modified by GUIDE v2.5 16-Dec-2017 19:11:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -112,6 +113,9 @@ handles.direction.useHood = false;
 handles.direction.useTimeWin = false;
 handles.direction.timeWinSiz = 3;
 handles.direction.smoothModel = false;
+
+handles.expInfo.ds = [1, 1, 1];
+handles.expInfo.dt = 1;
 
 % Figures id
 handles.figs.lineAnalyze = 1;
@@ -1029,7 +1033,79 @@ guidata(hObject, handles);
 
 
 
+% --- Executes during object creation, after setting all properties.
+function SetXYUnits_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to SetXYUnits (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
 
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function SetXYUnits_Callback(hObject, eventdata, handles)
+% hObject    handle to SetXYUnits (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of SetXYUnits as text
+%        str2double(get(hObject,'String')) returns contents of SetXYUnits as a double
+handles = guidata(hObject);
+
+val = str2double(get(hObject, 'String'));
+handles.expInfo.ds = [val, val, 1];  % Assumes dx=dy and dz=1
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function setTUnits_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to setTUnits (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function setTUnits_Callback(hObject, eventdata, handles)
+% hObject    handle to setTUnits (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of setTUnits as text
+%        str2double(get(hObject,'String')) returns contents of setTUnits as a double
+handles = guidata(hObject);
+
+handles.expInfo.dt = str2double(get(hObject, 'String'));
+
+% Need to push the data so that it is available in handles.mainGui
+guidata(hObject, handles);
+
+
+
+
+
+
+% --- Executes on button press in setUseDicomChk.
+function setUseDicomChk_Callback(hObject, eventdata, handles)
+% hObject    handle to setUseDicomChk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of setUseDicomChk
+msgbox('Not implemented. Use entry values');
+set(hObject, 'Value', 0);
 
 
 
