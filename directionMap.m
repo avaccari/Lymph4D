@@ -1,4 +1,4 @@
-% Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
+% Copyright 2023 Andrea Vaccari (avaccari@middlebury.edu)
 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -434,10 +434,11 @@ function handles = directionMap(handles)
     end
 
     % Show pop-up window with averages for original analysis polygon
-    origMask = handles.drawing.poly.createMask(h);
-    origMskd = ovrl .* repmat(origMask, 1, 1, size(ovrl, 3));
+%     origMask = handles.drawing.poly.createMask(h);
+%     origMskd = ovrl .* repmat(origMask, 1, 1, size(ovrl, 3));
+    origMskd = ovrl .* repmat(mask, 1, 1, size(ovrl, 3));
     origMskd(origMskd == 0) = nan;
-    vals = squeeze(nanmean(nanmean(origMskd, 1), 2));
+    vals = squeeze(mean(mean(origMskd, 1, "omitnan"), 2, "omitnan"));
     txt = {'Mean values within original polygon:'};
     for ch = 1 : size(ovrl, 3)
 %             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
@@ -453,7 +454,8 @@ function handles = directionMap(handles)
             txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
         end
     end
-    txt{end + 1} = ['Pixels within polygon:', num2str(nnz(origMask))];
+%     txt{end + 1} = ['Pixels within polygon:', num2str(nnz(origMask))];
+    txt{end + 1} = ['Pixels within polygon:', num2str(nnz(mask))];
     msgbox(txt,'Avgs in original poly');
 
 
@@ -897,7 +899,7 @@ function handles = directionMap(handles)
             pMask = poly.createMask(h);
             mskd = ovrl .* repmat(pMask, 1, 1, size(ovrl, 3));
             mskd(mskd == 0) = nan;
-            vals = squeeze(nanmean(nanmean(mskd, 1), 2));
+            vals = squeeze(mean(mean(mskd, 1, "omitnan"), 2, "omitnan"));
             txt = {'Mean values within polygon:'};
             for ch = 1 : size(ovrl, 3)
     %             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);

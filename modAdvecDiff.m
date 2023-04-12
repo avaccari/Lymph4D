@@ -1,4 +1,4 @@
-% Copyright 2017 Andrea Vaccari (av9g@virginia.edu)
+% Copyright 2023 Andrea Vaccari (avaccari@middlebury.edu)
 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
@@ -92,8 +92,12 @@ function [coeff, res, resNorm] = evalAdvecDiff(GI, y, useHood, hoodSiz)
     lb = [0, -Inf, -Inf];
     ub = [Inf, Inf, Inf];
     x0 = [];        
+% Crashes if A and d are zeros
+%     options = optimoptions('lsqlin', ...
+%                            'Algorithm', 'trust-region-reflective', ...
+%                            'Display', 'off');
     options = optimoptions('lsqlin', ...
-                           'Algorithm', 'trust-region-reflective', ...
+                           'Algorithm', 'interior-point', ...
                            'Display', 'off');
 
     % Calculate the advection-diffusion parameters
@@ -124,7 +128,7 @@ function [coeff, res, resNorm] = evalAdvecDiff(GI, y, useHood, hoodSiz)
         resNorm = padarray(resNorm(1 + hDel : sr - hDel, 1 + hDel : sc - hDel), [hDel, hDel], 'replicate');
     else
         res = zeros(sr, sc, st);  % An array to hold the residuals at each time step
-        for c = 1:sc
+        parfor c = 1:sc
             for r = 1:sr        
                 % Calculate the coefficients
                 [coeff(r, c, :), ...
