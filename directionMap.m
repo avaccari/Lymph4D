@@ -503,25 +503,26 @@ function handles = directionMap(handles)
         end
         
         % Check for special color maps
-        if strcmp(chnls{channel}, 'Vdir')            
-            colormap(ax, colorcet('C2'));
-            if isfield(handles, 'tmpl')
-                colormap(axT, colorcet('C2'));
-            end
-        elseif strcmp(chnls{channel}, 'Péclet Num.')
-            colormap(ax, colorcet('D1'));
-            mx = max(mM);
-            scale = [-mx, mx] + 1;
-            set(ax, 'CLim', scale); 
-            if isfield(handles, 'tmpl')
-                colormap(axT, colorcet('D1'));
-                set(axT, 'CLim', scale); 
-            end
-        else
-            colormap(ax, 'jet');
-            if isfield(handles, 'tmpl')
-                colormap(axT, 'jet');
-            end            
+        switch chnls{channel}
+            case 'Vdir'            
+                colormap(ax, colorcet('C2'));
+                if isfield(handles, 'tmpl')
+                    colormap(axT, colorcet('C2'));
+                end
+            case 'Péclet Num.'
+                colormap(ax, colorcet('D1'));
+                mx = max(mM);
+                scale = [-mx, mx] + 1;
+                set(ax, 'CLim', scale); 
+                if isfield(handles, 'tmpl')
+                    colormap(axT, colorcet('D1'));
+                    set(axT, 'CLim', scale); 
+                end
+            otherwise
+                colormap(ax, 'jet');
+                if isfield(handles, 'tmpl')
+                    colormap(axT, 'jet');
+                end            
         end
     end
 
