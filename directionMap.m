@@ -21,10 +21,8 @@ function handles = directionMap(handles)
     useTimWin = handles.direction.useTimeWin;
     winSiz = handles.direction.timeWinSiz;
     useSmooth = handles.direction.smoothModel;
-%     ds = handles.expInfo.ds;
-%     dt = handles.expInfo.dt;
-    ds=1;
-    dt=1;
+    ds = handles.expInfo.ds;
+    dt = handles.expInfo.dt;
 
     % Notify user that saving is ongoing
     h = msgbox('Evaluating directional map...');
@@ -492,10 +490,10 @@ function handles = directionMap(handles)
             set(axT, 'CLim', mM);
         end
         
-        % If Vmag, show quiver button
-        hqtgl.Visible = 'off';
-        hqsca.Visible = 'off';
-        hqsmp.Visible = 'off';
+        % If Vmag, show quiver controls
+        hqtgl.Visible = 'off';  % Button to toggle quiver on
+        hqsca.Visible = 'off';  % Scale adjustment
+        hqsmp.Visible = 'off';  % Sampling adjustment
         if strcmp(chnls{channel}, 'Vmag')
             hqtgl.Visible = 'on';
             hqsca.Visible = 'on';
@@ -803,7 +801,6 @@ function handles = directionMap(handles)
     end
 
 
-
     % Add button with callback to calculate differences between current and template
     uicontrol('parent', fig, ...
               'style', 'pushbutton', ...
@@ -924,6 +921,49 @@ function handles = directionMap(handles)
             end
         end
     end
+
+
+    % Add button with callback to export overlay file
+    uicontrol('parent', fig, ...
+              'style', 'pushbutton', ...
+              'string', 'Ovrl ->', ...
+              'units', 'normalized', ...
+              'position', [0.1, 0.90, 0.1, 0.05], ...
+              'callback', @exportOvrl)
+    function exportOvrl(src, evt)
+        % Build unique file name
+        time = char(datetime('now', 'Format', 'yyyyMMddHHmmss'));
+        file = char(strcat(handles.machineId, time, '-ovrl.mat'));
+        [file, dir] = uiputfile('*.mat', ...
+                                'Save file name', ...
+                                file);
+        
+        % Check if the user cancelled
+        if isequal(file, 0) || isequal(dir, 0)
+            return
+        end
+        
+        % Notify user that saving is ongoing
+        h = msgbox('Saving ovrl file...');
+        
+        % If the file exists, delete it
+        if exist(fullfile(dir, file), 'file') == 2
+            delete(fullfile(dir, file));
+        end
+
+        % Save ovrl to file
+        save(file, 'ovrl');
+        
+        % Remove notification
+        try
+            delete(h);
+        catch ME
+        end
+
+    end
+
+
+
           
 end
 

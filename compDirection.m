@@ -15,4 +15,4 @@
 
 function compDirection(hObject, eventdata, handles)
 
-disp('here');
+disp('Not implemented yet!');
