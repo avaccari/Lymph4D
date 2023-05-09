@@ -1,1 +1,16 @@
 # List of untracked files to ignore
+*.mat
+*.asv
+.DS_Store
+3rdParty/AllenBrainAtlas
+3rdParty/ci_loadLif
+3rdParty/Codes&Images
+3rdParty/Motion_Compensation
+3rdParty/nonrigid_version23
+3rdParty/phasemap
+3rdParty/scalablebrainatlas_mfiles
+3rdParty/viewer3d_version12a
+3rdParty/xlwrite/Test_xlWrite.m
+3rdParty/*.m
+Executables
+Utils
