@@ -110,8 +110,10 @@ function [coeff, res, resNorm] = evalAdvecDiff(GI, y, useHood, hoodSiz)
         hVol = hoodSiz * hoodSiz;
         hDel = (hoodSiz - 1) / 2;
         res = zeros(sr, sc, hVol * st);  % An array to hold the residuals at each time step
-        for c = 1 + hDel : sc - hDel
-            for r = 1 + hDel : sr - hDel
+        r_start = 1 + hDel;
+        r_end = sr - hDel;
+        parfor c = 1 + hDel : sc - hDel
+            for r = r_start : r_end
                 y1 = reshape(permute(squeeze(y(r-hDel:r+hDel, c-hDel:c+hDel, :)), [3, 1, 2]), hVol * st, 1);
                 GI1 = reshape(permute(squeeze(GI(r-hDel:r+hDel, c-hDel:c+hDel, :, :)), [3, 1, 2, 4]), length(y1), 3);
                 % Calculate the coefficients
