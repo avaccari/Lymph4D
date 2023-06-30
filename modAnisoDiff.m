@@ -249,7 +249,7 @@ function [an, as, ae, aw] = gradSVD(an, as, ae, aw, winSize)
         for r = dy+1:size(A,2)-dy
             s = A(c-dx:c+dx, r-dy:r+dy, :);
             s = reshape(permute(s, [3, 1, 2]), 4, [])';
-            [u, s, v] = svds(s, 1);
+            [~, ~, v] = svds(s, 1);
             AN(c, r, :) = v;
         end
     end

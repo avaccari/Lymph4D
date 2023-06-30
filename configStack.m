@@ -22,6 +22,9 @@ if ~isfield(handles, 'stackOrig')
 return
 end
 
+% Set default values
+handles = configDefaults(handles);
+
 % Extract stack size
 img = handles.stackOrig;
 [~, ~, handles.sliceNum, handles.stackNum] = size(img);
