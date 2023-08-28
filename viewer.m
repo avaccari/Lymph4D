@@ -13,6 +13,14 @@
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+
+
+
+
+
+%% Viewer instantiation and closing ---------------------------------------
+
 function varargout = viewer(varargin)
 % VIEWER MATLAB code for viewer.fig
 %      VIEWER, by itself, creates a new VIEWER or raises the existing
@@ -109,6 +117,18 @@ function viewer_ClosingFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 delete(hObject);
 
+
+
+
+
+
+
+
+
+
+
+
+%% Viewer callbacks -------------------------------------------------------
 
 % --- Executes on button press in selectExpBtn.
 function selectExpBtn_Callback(hObject, eventdata, handles)
@@ -222,6 +242,9 @@ end
 % Load the variable and open it
 handles.stackOrig = evalin('base', list(s).name);
 
+% Set the name of the experiment
+handles.expInfo.expName = list(s).name;
+
 % Configure the stack for visualization
 handles = configStack(handles);
 
@@ -270,6 +293,10 @@ if ~found
     msgbox('There are not 4D variables in the file');
     return
 end
+
+% Set the name of the experiment (assumes an extension)
+name = regexp(fName, "(.*)\.", "tokens");
+handles.expInfo.expName = name{1}{1};
 
 % Configure the stack for visualization
 handles = configStack(handles);
@@ -1351,8 +1378,7 @@ guidata(hObject, handles);
 
 
 
-
-
+%% Mouse events -----------------------------------------------------------
 
 % --- Executes on mouse motion over figure - except title and menu.
 function mainGui_WindowButtonMotionFcn(hObject, eventdata, handles)
@@ -1466,9 +1492,14 @@ guidata(hObject, handles);
 
 
 
-% --------------------------------------------------------------------
-% MENU
-% --------------------------------------------------------------------
+
+
+
+
+
+
+
+%% Menu callbacks ---------------------------------------------------------
 
 % --------------------------------------------------------------------
 function mOpt_Callback(hObject, eventdata, handles)
