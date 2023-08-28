@@ -99,7 +99,7 @@ end
 % Prepare export file name
 name = 'PolyAnalysis';
 if isfield(handles, 'expInfo')
-    name = strcat('Poly_', handles.expInfo.expNameExp);
+    name = strcat('Poly_', handles.expInfo.expName);
 end
 
 % Check if there is a last dir and prepare a default location
