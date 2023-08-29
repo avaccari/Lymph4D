@@ -24,6 +24,12 @@ function handles = directionMap(handles)
     ds = handles.expInfo.ds;
     dt = handles.expInfo.dt;
 
+    % Evaluate the ds to use for the Peclet number
+    ds_peclet = max(ds);
+    if useHood
+        ds_peclet = hoodSiz * ds_peclet;
+    end
+
     % Notify user that saving is ongoing
     h = msgbox('Evaluating directional map...');
     
@@ -229,7 +235,7 @@ function handles = directionMap(handles)
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
             vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
-            pec = vmag ./ coeff(:, :, 1);
+            pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
             ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                     coeff(:, :, 1), ...
                                                                     relc, ...
@@ -257,7 +263,7 @@ function handles = directionMap(handles)
                 relc = exp(-coeff(:, :, 1));
                 vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
                 vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
-                pec = vmag ./ coeff(:, :, 1);
+                pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
                 ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                             coeff(:, :, 1), ...
                                                                             relc, ...
@@ -306,7 +312,7 @@ function handles = directionMap(handles)
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
             vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
-            pec = vmag ./ coeff(:, :, 1);
+            pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
             ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                     coeff(:, :, 1), ...
                                                                     relc, ...
@@ -334,7 +340,7 @@ function handles = directionMap(handles)
                 relc = exp(-coeff(:, :, 1));
                 vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
                 vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
-                pec = vmag ./ coeff(:, :, 1);
+                pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
                 ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                                                                             coeff(:, :, 1), ...
                                                                             relc, ...
