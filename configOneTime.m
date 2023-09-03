@@ -49,6 +49,18 @@ cmaps = dir(cmapDir);
 cmaps = {cmaps.name};
 handles.cmaps = cellfun(@(x) erase(x, '.m'), cmaps, 'UniformOutput', false);
 
+% Start Parallel Pool (if Distrib_Computing_Toolbox is available)
+if license('test', 'Distrib_Computing_Toolbox')
+    h = msgbox('Starting parallel pool using the default settings...');
+    parpool;
+    try
+        delete(h);
+    catch ME
+    end
+else
+    h = mesgbox('No parallel pool available, using single thread.');
+end
+
 % Set default values
 handles = configDefaults(handles);
 
