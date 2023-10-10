@@ -311,7 +311,7 @@ pName = uigetdir(handles.storePath, "Choose folder with batch data");
 files = dir(fullfile(pName, '*.mat'));
 
 % Notify user that saving is ongoing
-h = msgbox(strcat('Processing files in\n', pName));
+h = msgbox({'Processing files in'; pName});
 
 % Run the analysis on every file
 for n = 1:length(files)
@@ -364,16 +364,15 @@ for n = 1:length(files)
         save(fullfile(pName, fNameTmpl), 'ovrlTmpl');
     end
     
-    % Remove notification
-    try
-        delete(h);
-    catch ME
-    end
-
 end
 
-% Do not modify the current state
-% guidata(hObject, handles);
+% Remove notification
+try
+    delete(h);
+catch ME
+end
+
+guidata(hObject, handles);
 
 
 
