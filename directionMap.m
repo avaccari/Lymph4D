@@ -31,7 +31,9 @@ function handles = directionMap(handles)
     end
 
     % Notify user that saving is ongoing
-    h = msgbox('Evaluating directional map...');
+    if ~handles.dirMap.quiet
+        h = msgbox('Evaluating directional map...');
+    end
     
     % Define the base image
     lmf = handles.stackImg(:, :, handles.sliceIdx, end) - handles.stackImg(:, :, handles.sliceIdx, 1); 
@@ -376,9 +378,11 @@ function handles = directionMap(handles)
     
     
     % Remove notification
-    try
-        delete(h);
-    catch ME
+    if ~handles.dirMap.quiet
+        try
+            delete(h);
+        catch ME
+        end
     end
     
     % Store original results

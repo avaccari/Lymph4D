@@ -310,6 +310,9 @@ handles = guidata(hObject);
 pName = uigetdir(handles.storePath, "Choose folder with batch data");
 files = dir(fullfile(pName, '*.mat'));
 
+% Notify user that saving is ongoing
+h = msgbox(strcat('Processing files in\n', pName));
+
 % Run the analysis on every file
 for n = 1:length(files)
     fName = files(n).name;
@@ -328,6 +331,7 @@ for n = 1:length(files)
 
     % Don't show the directional map
     handles.dirMap.show = false;
+    handles.dirMap.quiet = true;
 
     % Try to run the analysis
     try
@@ -343,10 +347,6 @@ for n = 1:length(files)
     if isfield(handles, 'tmpl')
         fNameTmpl = strcat(file, 'ovrlTmpl', ext);
     end
-
-    
-    % Notify user that saving is ongoing
-    h = msgbox('Saving ovrl file(s)...');
     
     % If the file exists, delete it
     if exist(fullfile(pName, fName), 'file') == 2
@@ -753,6 +753,8 @@ handles = guidata(hObject);
 
 % Show the directional map
 handles.dirMap.show = true;
+handles.dirMap.quiet = false;
+
 try
     handles = directionMap(handles);
 catch ME
