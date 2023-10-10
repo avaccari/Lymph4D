@@ -383,8 +383,15 @@ function handles = directionMap(handles)
     
     % Store original results
     ovrlOrig = ovrl;
+    handles.ovrl = ovrl;
     if isfield(handles, 'tmpl')
         ovrlTmplOrig = ovrlTmpl;
+        handles.ovrlTmpl = ovrlTmpl;
+    end
+
+    % If we are not showing the results, we are done
+    if ~handles.dirMap.show
+        return
     end
 
     % Overlay on grayscale version of image
@@ -932,7 +939,7 @@ function handles = directionMap(handles)
     % Add button with callback to export overlay file
     uicontrol('parent', fig, ...
               'style', 'pushbutton', ...
-              'string', 'Ovrl ->', ...
+              'string', 'Ovrls ->', ...
               'units', 'normalized', ...
               'position', [0.1, 0.90, 0.1, 0.05], ...
               'callback', @exportOvrl)
@@ -941,7 +948,7 @@ function handles = directionMap(handles)
         time = char(datetime('now', 'Format', 'yyyyMMddHHmmss'));
         file = char(strcat(handles.machineId, time, '-ovrl.mat'));
         [file, dir] = uiputfile('*.mat', ...
-                                'Save file name', ...
+                                'Save file name for ovrl', ...
                                 file);
         
         % Check if the user cancelled
@@ -958,12 +965,43 @@ function handles = directionMap(handles)
         end
 
         % Save ovrl to file
-        save(file, 'ovrl');
+        save(fullfile(dir, file), 'ovrlOrig');
         
         % Remove notification
         try
             delete(h);
         catch ME
+        end
+
+ 
+        if isfield(handles, 'tmpl')
+
+            file = char(strcat(handles.machineId, time, '-ovrlTmpl.mat'));
+            [file, dir] = uiputfile('*.mat', ...
+                                    'Save file name for template over', ...
+                                    file);
+            
+            % Check if the user cancelled
+            if isequal(file, 0) || isequal(dir, 0)
+                return
+            end
+            
+            % Notify user that saving is ongoing
+            h = msgbox('Saving ovrlTmpl file...');
+            
+            % If the file exists, delete it
+            if exist(fullfile(dir, file), 'file') == 2
+                delete(fullfile(dir, file));
+            end
+    
+            % Save ovrl to file
+            save(fullfile(dir, file), 'ovrlTmplOrig');
+            
+            % Remove notification
+            try
+                delete(h);
+            catch ME
+            end
         end
 
     end
