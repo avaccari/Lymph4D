@@ -343,9 +343,9 @@ for n = 1:length(files)
 
     % Define the file names
     [~, file, ext]=fileparts(fName);
-    fName = strcat(file, '-ovrl', ext);
+    fName = strcat(file, '_ovrl', ext);
     if isfield(handles, 'tmpl')
-        fNameTmpl = strcat(file, 'ovrlTmpl', ext);
+        fNameTmpl = strcat(file, '_ovrlTmpl', ext);
     end
     
     % If the file exists, delete it
