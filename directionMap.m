@@ -48,18 +48,16 @@ function handles = directionMap(handles)
     % Check if a region is defined
     if isfield(handles.drawing, 'poly')
         % Find enclosing rectangle
-        Mm = minmax(handles.drawing.poly.getPosition()');
-        rmM = floor(Mm(1, :));
-        cmM = ceil(Mm(2, :));
+        mM = minmax(handles.drawing.poly.getPosition()');
+        rmM = floor(mM(1, :));
+        cmM = ceil(mM(2, :));
 
         % Extract the temporal stack for the current slice
         stk = squeeze(handles.stackImg(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
 
         % If the user wants to smooth the images before fitting the model
         if useSmooth
-            % Smooth with 3x3 Gaussian
-            fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
-            stk = imfilter(stk, fil, 'replicate', 'same');
+            stk = smooth(stk);
         end        
         
         % Repeat for template, if there is one
@@ -68,9 +66,7 @@ function handles = directionMap(handles)
 
             % If the user wants to smooth the images before fitting the model
             if useSmooth
-                % Smooth with 3x3 Gaussian
-                fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
-                stkTmpl = imfilter(stkTmpl, fil, 'replicate', 'same');
+                stkTmpl = smooth(stkTmpl);
             end        
         end
                 
@@ -84,9 +80,20 @@ function handles = directionMap(handles)
         % Extract the temporal stack for the current slice
         stk = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
 
+        % If the user wants to smooth the images before fitting the model
+        if useSmooth
+            stk = smooth(stk);
+        end        
+
         % Repeat for template, if there is one
         if isfield(handles, 'tmpl')
             stkTmpl = squeeze(handles.stackTmpl(:, :, handles.sliceIdx, :));
+
+            % If the user wants to smooth the images before fitting the model
+            if useSmooth
+                stkTmpl = smooth(stkTmpl);
+            end        
+
         end
         
         mask = ones(size(img));
@@ -1007,13 +1014,17 @@ function handles = directionMap(handles)
             catch ME
             end
         end
-
     end
-
-
-
-          
 end
+
+
+% Apply smoothing filter
+function smthImg = smooth(img)
+    % Smooth with 3x3 Gaussian
+    fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
+    smthImg = imfilter(img, fil, 'replicate', 'same');
+end
+
 
 
 
