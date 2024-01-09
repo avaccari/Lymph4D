@@ -2,6 +2,11 @@
 *.mat
 *.asv
 .DS_Store
+.!*
+Executables
+Utils
+resources
+TestData
 3rdParty/AllenBrainAtlas
 3rdParty/ci_loadLif
 3rdParty/Codes&Images
@@ -12,5 +17,3 @@
 3rdParty/viewer3d_version12a
 3rdParty/xlwrite/Test_xlWrite.m
 3rdParty/*.m
-Executables
-Utils

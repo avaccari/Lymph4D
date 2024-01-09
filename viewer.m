@@ -45,7 +45,7 @@ function varargout = viewer(varargin)
 
 % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 16-Dec-2017 19:11:18
+% Last Modified by GUIDE v2.5 06-Oct-2023 17:57:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -272,27 +272,18 @@ end
 if fName == 0
     return
 end
-                       
-% Load stack
-data = load(fullfile(pName, fName));
-fnames = fieldnames(data);
-found = false;
 
-% Load the first suitable variable
-for idx = 1 : length(fnames)
-    stack = data.(fnames{idx});
-    if length(size(stack)) == 4
-        handles.stackOrig = stack;
-        found = true;
-        break
-    end
-end
+% Load stack
+stack = loadStackFromFile(pName, fName);
    
-% If no suitable variable was found, bail
-if ~found
+% If stack was not available
+if stack == 0
     msgbox('There are not 4D variables in the file');
     return
 end
+
+% If it was 
+handles.stackOrig = stack;
 
 % Set the name of the experiment (assumes an extension)
 name = regexp(fName, "(.*)\.", "tokens");
@@ -303,6 +294,83 @@ handles = configStack(handles);
 
 % Update display
 handles = updateGui(handles);
+
+guidata(hObject, handles);
+
+
+
+
+
+% --- Executes on button press in batchProcessing.
+function batchProcessing_Callback(hObject, eventdata, handles)
+% hObject    handle to batchProcessing (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+pName = uigetdir(handles.storePath, "Choose folder with batch data");
+files = dir(fullfile(pName, '*.mat'));
+
+% Notify user that saving is ongoing
+h = msgbox({'Processing files in'; pName});
+
+% Run the analysis on every file
+for n = 1:length(files)
+    fName = files(n).name;
+    
+    % Load stack
+    stack = loadStackFromFile(pName, fName);
+
+    % If stack was not available
+    if stack == 0
+        msgbox('There are not 4D variables in the file');
+        return
+    end
+
+    % If it was store in stackImg (usually it gets stored in stackOrig)
+    handles.stackImg = stack;
+
+    % Don't show the directional map
+    handles.dirMap.show = false;
+    handles.dirMap.quiet = true;
+
+    % Try to run the analysis
+    try
+        handles = directionMap(handles);
+    catch ME
+        msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
+        return
+    end
+
+    % Define the file names
+    [~, file, ext] = fileparts(fName);
+    fName = strcat(file, '_ovrl', ext);
+    if isfield(handles, 'tmpl')
+        fNameTmpl = strcat(file, '_ovrlTmpl', ext);
+    end
+    
+    % If the file exists, delete it
+    if exist(fullfile(pName, fName), 'file') == 2
+        delete(fullfile(pName, fName));
+    end
+    if isfield(handles, 'tmpl') & exist(fullfile(pName, fNameTmpl), 'file') == 2
+        delete(fullfile(pName, fNameTmpl));
+    end
+
+    % Save ovrls to file
+    ovrl = handles.ovrl;
+    save(fullfile(pName, fName), 'ovrl');
+    if isfield(handles, 'tmpl')
+        ovrlTmpl = handles.ovrlTmpl;
+        save(fullfile(pName, fNameTmpl), 'ovrlTmpl');
+    end
+    
+end
+
+% Remove notification
+try
+    delete(h);
+catch ME
+end
 
 guidata(hObject, handles);
 
@@ -681,6 +749,11 @@ function dirMapBtn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
+
+% Show the directional map
+handles.dirMap.show = true;
+handles.dirMap.quiet = false;
+
 try
     handles = directionMap(handles);
 catch ME
@@ -1013,7 +1086,7 @@ guidata(hObject, handles);
 
 
 
-% --- Executes on button press in setUseDicomChk.
+% --- Executes on button press in setUsChk.
 function setUseDicomChk_Callback(hObject, eventdata, handles)
 % hObject    handle to setUseDicomChk (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB

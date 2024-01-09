@@ -31,7 +31,9 @@ function handles = directionMap(handles)
     end
 
     % Notify user that saving is ongoing
-    h = msgbox('Evaluating directional map...');
+    if ~handles.dirMap.quiet
+        h = msgbox('Evaluating directional map...');
+    end
     
     % Define the base image
     lmf = handles.stackImg(:, :, handles.sliceIdx, end) - handles.stackImg(:, :, handles.sliceIdx, 1); 
@@ -46,18 +48,16 @@ function handles = directionMap(handles)
     % Check if a region is defined
     if isfield(handles.drawing, 'poly')
         % Find enclosing rectangle
-        Mm = minmax(handles.drawing.poly.getPosition()');
-        rmM = floor(Mm(1, :));
-        cmM = ceil(Mm(2, :));
+        mM = minmax(handles.drawing.poly.getPosition()');
+        rmM = floor(mM(1, :));
+        cmM = ceil(mM(2, :));
 
         % Extract the temporal stack for the current slice
         stk = squeeze(handles.stackImg(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
 
         % If the user wants to smooth the images before fitting the model
         if useSmooth
-            % Smooth with 3x3 Gaussian
-            fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
-            stk = imfilter(stk, fil, 'replicate', 'same');
+            stk = smooth(stk);
         end        
         
         % Repeat for template, if there is one
@@ -66,9 +66,7 @@ function handles = directionMap(handles)
 
             % If the user wants to smooth the images before fitting the model
             if useSmooth
-                % Smooth with 3x3 Gaussian
-                fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
-                stkTmpl = imfilter(stkTmpl, fil, 'replicate', 'same');
+                stkTmpl = smooth(stkTmpl);
             end        
         end
                 
@@ -82,9 +80,20 @@ function handles = directionMap(handles)
         % Extract the temporal stack for the current slice
         stk = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
 
+        % If the user wants to smooth the images before fitting the model
+        if useSmooth
+            stk = smooth(stk);
+        end        
+
         % Repeat for template, if there is one
         if isfield(handles, 'tmpl')
             stkTmpl = squeeze(handles.stackTmpl(:, :, handles.sliceIdx, :));
+
+            % If the user wants to smooth the images before fitting the model
+            if useSmooth
+                stkTmpl = smooth(stkTmpl);
+            end        
+
         end
         
         mask = ones(size(img));
@@ -376,15 +385,24 @@ function handles = directionMap(handles)
     
     
     % Remove notification
-    try
-        delete(h);
-    catch ME
+    if ~handles.dirMap.quiet
+        try
+            delete(h);
+        catch ME
+        end
     end
     
     % Store original results
     ovrlOrig = ovrl;
+    handles.ovrl = ovrl;
     if isfield(handles, 'tmpl')
         ovrlTmplOrig = ovrlTmpl;
+        handles.ovrlTmpl = ovrlTmpl;
+    end
+
+    % If we are not showing the results, we are done
+    if ~handles.dirMap.show
+        return
     end
 
     % Overlay on grayscale version of image
@@ -932,7 +950,7 @@ function handles = directionMap(handles)
     % Add button with callback to export overlay file
     uicontrol('parent', fig, ...
               'style', 'pushbutton', ...
-              'string', 'Ovrl ->', ...
+              'string', 'Ovrls ->', ...
               'units', 'normalized', ...
               'position', [0.1, 0.90, 0.1, 0.05], ...
               'callback', @exportOvrl)
@@ -941,7 +959,7 @@ function handles = directionMap(handles)
         time = char(datetime('now', 'Format', 'yyyyMMddHHmmss'));
         file = char(strcat(handles.machineId, time, '-ovrl.mat'));
         [file, dir] = uiputfile('*.mat', ...
-                                'Save file name', ...
+                                'Save file name for ovrl', ...
                                 file);
         
         % Check if the user cancelled
@@ -958,7 +976,7 @@ function handles = directionMap(handles)
         end
 
         % Save ovrl to file
-        save(file, 'ovrl');
+        save(fullfile(dir, file), 'ovrlOrig');
         
         % Remove notification
         try
@@ -966,12 +984,47 @@ function handles = directionMap(handles)
         catch ME
         end
 
+ 
+        if isfield(handles, 'tmpl')
+
+            file = char(strcat(handles.machineId, time, '-ovrlTmpl.mat'));
+            [file, dir] = uiputfile('*.mat', ...
+                                    'Save file name for template over', ...
+                                    file);
+            
+            % Check if the user cancelled
+            if isequal(file, 0) || isequal(dir, 0)
+                return
+            end
+            
+            % Notify user that saving is ongoing
+            h = msgbox('Saving ovrlTmpl file...');
+            
+            % If the file exists, delete it
+            if exist(fullfile(dir, file), 'file') == 2
+                delete(fullfile(dir, file));
+            end
+    
+            % Save ovrl to file
+            save(fullfile(dir, file), 'ovrlTmplOrig');
+            
+            % Remove notification
+            try
+                delete(h);
+            catch ME
+            end
+        end
     end
-
-
-
-          
 end
+
+
+% Apply smoothing filter
+function smthImg = smooth(img)
+    % Smooth with 3x3 Gaussian
+    fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
+    smthImg = imfilter(img, fil, 'replicate', 'same');
+end
+
 
 
 
