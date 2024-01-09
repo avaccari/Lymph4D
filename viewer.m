@@ -342,7 +342,7 @@ for n = 1:length(files)
     end
 
     % Define the file names
-    [~, file, ext]=fileparts(fName);
+    [~, file, ext] = fileparts(fName);
     fName = strcat(file, '_ovrl', ext);
     if isfield(handles, 'tmpl')
         fNameTmpl = strcat(file, '_ovrlTmpl', ext);
