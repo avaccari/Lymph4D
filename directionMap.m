@@ -25,7 +25,7 @@ function handles = directionMap(handles)
     dt = handles.expInfo.dt;
 
     % Evaluate the ds to use for the Peclet number
-    ds_peclet = max(ds);
+    ds_peclet = max(ds(1:2));
     if useHood
         ds_peclet = hoodSiz * ds_peclet;
     end

@@ -28,8 +28,13 @@
 % In this case the A and y are the temporal series of the values
 function [coeff, res, resNorm] = modAdvecDiff(stk, be, en, ds, dt, useTimWin, winSiz, useHood, hoodSiz)
     % Calculate the time series of gradients and laplacians
-    [Ix, Iy] = gradient(stk);
-    lap = 4 * del2(stk);
+    % [Ix, Iy] = gradient(stk);
+    % lap = 4 * del2(stk);
+    [Ix, Iy, ~] = gradient(stk, ds(2), ds(1), ds(3));
+    Ix = dt * Ix;
+    Iy = dt * Iy;
+    lap = 4 * del2(stk, ds(2), ds(1), ds(3));
+    lap = dt * lap;
 
     % Calculate the time series of the differences
     % TODO: make dependent on GI size
@@ -37,11 +42,11 @@ function [coeff, res, resNorm] = modAdvecDiff(stk, be, en, ds, dt, useTimWin, wi
     
     % Scale variable before the fit (switch to physical units: um, s)
     % handles.expInfo.ds = [dr, dc, dz] but we assume dr=dc and dz=1
-    alpha = 0.5 * dt / ds(1);
-    beta = 2 * alpha / ds(1);
-    Ix = alpha * Ix;
-    Iy = alpha * Iy;
-    lap = beta * lap;
+    % alpha = 0.5 * dt / ds(1);
+    % beta = 2 * alpha / ds(1);  % beta = dt / ds(1)^2
+    % Ix = alpha * Ix;
+    % Iy = alpha * Iy;
+    % lap = beta * lap;
     
     % Stack and restrict time if any
     GI = cat(4, lap, -Ix, -Iy);
@@ -79,7 +84,6 @@ function [coeff, res, resNorm] = modAdvecDiff(stk, be, en, ds, dt, useTimWin, wi
         y = y(:, :, be:en);
         [coeff, res, resNorm] = evalAdvecDiff(GI, y, useHood, hoodSiz);
     end
-
 end
 
 % Evaluate model

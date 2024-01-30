@@ -1046,6 +1046,7 @@ function SetXYUnits_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 
 val = str2double(get(hObject, 'String'));
+val = val / 1000000;  % Entered values are in um
 handles.expInfo.ds = [val, val, 1];  % Assumes dx=dy and dz=1
 
 % Need to push the data so that it is available in handles.mainGui
