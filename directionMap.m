@@ -21,10 +21,9 @@ function handles = directionMap(handles)
     useTimWin = handles.direction.useTimeWin;
     winSiz = handles.direction.timeWinSiz;
     useSmooth = handles.direction.smoothModel;
-%     ds = handles.expInfo.ds;
-%     dt = handles.expInfo.dt;
-    ds=1;
-    dt=1;
+    ds = handles.expInfo.ds;
+    dt = handles.expInfo.dt;
+
 
     % Notify user that saving is ongoing
     h = msgbox('Evaluating directional map...');
@@ -70,8 +69,13 @@ function handles = directionMap(handles)
                 
         % Define the polygon mask
         mask = handles.drawing.poly.createMask();
+        
+        %KK adjust
+        % [perim,other]=bwboundaries(mask,'noholes');
     else
         % Encosing rectangle is the whole image
+%         rmM = [2, size
+%         cmM = [2, size(img, 2) - (img, 1) - 1];1];
         rmM = [2, size(img, 1) - 1];
         cmM = [2, size(img, 2) - 1];
         
@@ -224,7 +228,7 @@ function handles = directionMap(handles)
             % Store data in overlays
             ovrl = cat(3, ovrl, zeros([size(img), snc]));
             
-            % Adjust for central gradients (non need for the extra pixel at
+            % Adjust for central gradwients (non need for the extra pixel at
             % the edges)
             cmM = cmM + [-1, 1];
             rmM = rmM + [-1, 1];
@@ -386,7 +390,9 @@ function handles = directionMap(handles)
     % Overlay on grayscale version of image
     fig = figure(handles.figs.dirMap);
     fig.Units = 'normalized';
-    fig.Resize = 'off';  % Prevent user from resizing the figure
+    fig.Resize = 'off'; %Prevent user from resizing the figure 
+    fig.PaperUnits = 'inches';
+    fig.PaperPosition = [0 0 4 4];
     pos = [0.05, 0.1, 0.9, 0.8];
     if isfield(handles, 'tmpl')
         posTmpl = [0.05, 0.1, 0.4, 0.8];
@@ -433,35 +439,6 @@ function handles = directionMap(handles)
         colorbar(axT);
     end
 
-    % Show pop-up window with averages for original analysis polygon
-    origMask = handles.drawing.poly.createMask(h);
-    origMskd = ovrl .* repmat(origMask, 1, 1, size(ovrl, 3));
-    origMskd(origMskd == 0) = nan;
-    vals = squeeze(nanmean(nanmean(origMskd, 1), 2));
-    txt = {'Mean values within original polygon:'};
-    for ch = 1 : size(ovrl, 3)
-%             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
-        if strcmp(chnls{ch}, 'Vmag') 
-            vm = sqrt(vals(ch + 2)^2 + vals(ch + 3)^2);
-            txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
-        elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
-            txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
-        elseif strcmp(chnls{ch}, 'Vdir')
-            vd = atan2d(vals(ch + 2), vals(ch + 1));
-            txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
-        else
-            txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
-        end
-    end
-    txt{end + 1} = ['Pixels within polygon:', num2str(nnz(origMask))];
-    msgbox(txt,'Avgs in original poly');
-
-
-
-    
-    
-    
-    
     % Add channel selector
     hpop = uicontrol('parent', fig, ...
                      'style', 'popup', ...
@@ -490,14 +467,24 @@ function handles = directionMap(handles)
             set(axT, 'CLim', mM);
         end
         
+        %kk adjust
         % If Vmag, show quiver button
-        hqtgl.Visible = 'off';
-        hqsca.Visible = 'off';
-        hqsmp.Visible = 'off';
+        hqtgl.Visible = 'off'; % button to toggler quiver on
+        hqsca.Visible = 'off'; % button to control quiver scaling
+        hqsmp.Visible = 'off'; % button to control quiver sampling
         if strcmp(chnls{channel}, 'Vmag')
             hqtgl.Visible = 'on';
             hqsca.Visible = 'on';
             hqsmp.Visible = 'on';
+            % kk adjust
+            hold on
+            KK_filename = 'E062 Day Tumor Boundary';
+            KK_sheet = 24;
+            perim = xlsread(KK_filename,KK_sheet);
+            for k = 1:length(perim)
+                boundary = perim;
+                plot(boundary(:,2),boundary(:,1), 'r', 'LineWidth', 1)
+            end
         end
         
         % Check for special color maps
@@ -887,41 +874,102 @@ function handles = directionMap(handles)
               'position', [0.0, 0.90, 0.1, 0.05], ...
               'callback', @polygon);
     function polygon(src, evt)
+        
         poly = impoly(ax);
-        showData(false);
-        poly.addNewPositionCallback(@newPos);
-        function newPos(src, evt)
-            showData(true);
-        end
-        function showData(update)
-            pMask = poly.createMask(h);
-            mskd = ovrl .* repmat(pMask, 1, 1, size(ovrl, 3));
-            mskd(mskd == 0) = nan;
-            vals = squeeze(nanmean(nanmean(mskd, 1), 2));
-            txt = {'Mean values within polygon:'};
-            for ch = 1 : size(ovrl, 3)
-    %             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
-                if strcmp(chnls{ch}, 'Vmag') 
-                    vm = sqrt(vals(ch + 2)^2 + vals(ch + 3)^2);
-                    txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
-                elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
-                    txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
-                elseif strcmp(chnls{ch}, 'Vdir')
-                    vd = atan2d(vals(ch + 2), vals(ch + 1));
-                    txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
-                else
-                    txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
-                end
-            end
-            txt{end + 1} = ['Pixels within polygon:', num2str(nnz(pMask))];
-            if update
-                msgbox(txt,'Avgs in selected poly', 'replace');
+        pMask = poly.createMask(h);
+        figure;imagesc(pMask);
+        mskd = ovrl .* repmat(pMask, 1, 1, size(ovrl, 3));
+        mskd(mskd == 0) = nan;
+        vals = squeeze(nanmean(nanmean(mskd, 1), 2));
+        txt = {'Mean values within polygon:'};
+        poly_stats = {};
+        
+        for ch = 1 : size(ovrl, 3)
+%             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
+            poly_stats(ch,:) = {chnls{ch}, vals(ch)};
+            if strcmp(chnls{ch}, 'Vmag') 
+                vm = sqrt(vals(ch + 2)^2 + vals(ch + 3)^2);
+                txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
+                poly_stats(ch,:) = {chnls{ch}, vm};
+            elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
+                txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
+            elseif strcmp(chnls{ch}, 'Vdir')
+                vd = atan2d(vals(ch + 2), vals(ch + 1));
+                txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
+                poly_stats(ch,:) = {chnls{ch}, vd};
             else
-                msgbox(txt,'Avgs in selected poly');
+                txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
             end
         end
+        txt{end + 1} = ['Pixels within polygon:', num2str(nnz(pMask))];
+        
+        % new variable for normalized velocity field
+        % would be nicer t include in 'ovrl'
+        v_norm = zeros(size(ovrl,1), size(ovrl,2), 2);
+        vx_id  = find(strcmp(chnls, 'Vx')) ;
+        vy_id  = find(strcmp(chnls, 'Vy')) ;
+        vmag_id  = find(strcmp(chnls, 'Vmag')) ;
+        if not (isempty(vx_id) || isempty(vy_id) || isempty(vmag_id))
+            v_norm(:,:,1) = ovrl(:,:,vx_id) ./ ovrl(:,:,vmag_id);
+            v_norm(:,:,2) = ovrl(:,:,vy_id) ./ ovrl(:,:,vmag_id);
+            % check normalization:
+            %--- plotting start
+            figure('Name','v norm reconstructed region')
+            imagesc(v_norm(:,:,1).^2 + v_norm(:,:,2).^2)
+            grid on
+            daspect([1 1 1])
+            figure('Name','v norm reconstructed region quiver')
+            quiver(v_norm(:,:,1), v_norm(:,:,2))
+            grid on
+            daspect([1 1 1])
+            figure('Name','v reconstructed region quiver')
+            quiver(ovrl(:,:,vx_id), ovrl(:,:,vy_id))
+            grid on
+            daspect([1 1 1])
+            %--- plotting end
+        end
+        v_norm_mskd = v_norm .* repmat(pMask, 1, 1, size(v_norm, 3));
+        v_norm_mskd(v_norm_mskd == 0) = nan;
+        %--- plotting start
+        figure('Name','v norm masked region')
+        imagesc(v_norm_mskd(:,:,1).^2 + v_norm_mskd(:,:,2).^2)
+        grid on
+        daspect([1 1 1])
+        figure('Name','v norm masked quiver')
+        quiver(v_norm_mskd(:,:,1), v_norm_mskd(:,:,2))
+        grid on
+        daspect([1 1 1])
+        figure('Name','v masked quiver')
+        quiver(mskd(:,:,vx_id), mskd(:,:,vy_id))
+        grid on
+        daspect([1 1 1])
+        %--- plotting end
+            
+        
+        v_norm_vals = squeeze(nanmean(nanmean(v_norm_mskd, 1), 2));
+        v_norm_angle= atan2d(v_norm_vals(2), v_norm_vals(1));
+        txt{end + 1} = ['Avg direction (from normalized velocity vectors):', num2str(v_norm_angle, '%3.f')];
+               
+        msgbox(txt);
+        
+        poly_stats(size(ovrl, 3)+1,:) = {'Pixels within polygon', nnz(pMask)};
+        poly_stats(size(ovrl, 3)+2,:) = {'mask', pMask};
+        pos = getPosition(poly);
+        poly_stats(size(ovrl, 3)+3,:) = {'position', pos}
+        poly_stats(size(ovrl, 3)+4,:) = {'v_norm_field', v_norm}
+       
+        [file, path] = uiputfile('*.mat', 'Save polygon stats and position', 'poly_stats.mat');
+        display(path)
+        display(fullfile(path, file))
+        save(fullfile(path,file),'poly_stats')
+%         poly.addNewPositionCallback(@polyAvg);        
     end
-          
+    % Define callback
+%     function polyAvg(pos)
+%     end
+          save('ovrl_test.mat','ovrl')
+          save('mask_test.mat','mask')
+%           save('pmask_test.mat'pMask)
 end
 
 
