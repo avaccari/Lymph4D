@@ -1,15 +1,15 @@
-% Copyright 2023 Andrea Vaccari (avaccari@middlebury.edu)
+% Copyright 2024 Andrea Vaccari (avaccari@middlebury.edu)
 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % any later version.
-% 
+%
 % This program is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -74,7 +74,7 @@ for i = 1:length(list)
     end
 end
 
-% Drop the stacks with less than max number of slices?  
+% Drop the stacks with less than max number of slices?
 ex([ex.slices] < sliceMax) = [];
 stackNum = length(ex);
 handles.stackList = [ex.stack];
@@ -104,7 +104,7 @@ for st = 1 : stackNum
         img(:, :, sl, st) = dicomread(fil);
         try
             handles.expInfo.full(sl, st) = dicominfo(fil);
-        catch ME
+        catch
         end
     end
 end
@@ -112,7 +112,7 @@ end
 % Remove notification
 try
     delete(h);
-catch ME
+catch
 end
 
 % Extract basic info from dicom file (use first file)

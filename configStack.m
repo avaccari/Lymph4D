@@ -1,15 +1,15 @@
-% Copyright 2023 Andrea Vaccari (avaccari@middlebury.edu)
+% Copyright 2024 Andrea Vaccari (avaccari@middlebury.edu)
 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % any later version.
-% 
+%
 % This program is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -19,7 +19,7 @@ function handles = configStack(handles)
 % Bail if the stack is not available
 if ~isfield(handles, 'stackOrig')
     msgbox('The stack is not available!');
-return
+    return
 end
 
 % Set default values
@@ -57,12 +57,12 @@ if isfield(handles, 'tmpl')
     handles.tmpl = imagesc(handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx), handles.tmplCLims);
     pos = get(handles.tmplAx, 'Position');
     handles.tmplCBar = colorbar('location', 'south', ...
-                                'FontSize', 8, ...
-                                'AxisLocation', 'in', ...
-                                'Color', [0.5, 0.5, 0.5], ...
-                                'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
+        'FontSize', 8, ...
+        'AxisLocation', 'in', ...
+        'Color', [0.5, 0.5, 0.5], ...
+        'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
 end
-    
+
 % Assign to array
 handles.stackImg = img;
 
@@ -78,10 +78,10 @@ axes(handles.mainAx);
 pos = get(handles.mainAx, 'Position');
 handles.img = imagesc(img(:, :, handles.sliceIdx, handles.stackIdx), handles.stackCLims);
 handles.imgCBar = colorbar('location', 'south', ...
-                           'FontSize', 8, ...
-                           'AxisLocation', 'in', ...
-                           'Color', [0.5, 0.5, 0.5], ...
-                           'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
+    'FontSize', 8, ...
+    'AxisLocation', 'in', ...
+    'Color', [0.5, 0.5, 0.5], ...
+    'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
 
 % If template reset to origin
 if isfield(handles, 'tmpl')
@@ -93,4 +93,3 @@ if isfield(handles, 'tmpl')
     set(handles.tmplAx, 'CLim', handles.tmplCLims);
     set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
 end
-                      

@@ -1,15 +1,15 @@
-% Copyright 2023 Andrea Vaccari (avaccari@middlebury.edu)
+% Copyright 2024 Andrea Vaccari (avaccari@middlebury.edu)
 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % any later version.
-% 
+%
 % This program is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -47,7 +47,7 @@ if handles.localMean.use
     % Create BW image indicating profile location
     BW = zeros(size(dummy));
     BW(sub2ind(size(dummy), r, c)) = 1;
-
+    
     % Create an averaging filter
     % Choices (defined in guide):
     % 1 - 'Disk (radius)'
@@ -60,14 +60,14 @@ if handles.localMean.use
         otherwise  % Should never get here
             flt = fspecial('disk', fltSize);
     end
-
+    
     % Create and exel sheet to hold values of filter
     handles.toExcel.sheet(3).name = 'Filter';
     data = cell(size(flt) + [1, 0]);
     data(1, 1) = cellstr('Neighborhood used to evaluate average values');
     data(2:end, :) = num2cell(flt);
     handles.toExcel.sheet(3).data = data;
-   
+    
     % Add note to plots
     note = ' (Avrgd)';
 end
@@ -89,15 +89,15 @@ for stk = 1 : handles.stackNum
     end
     if handles.localMean.use
         img = roifilt2(flt, img, BW);
-    if isfield(handles, 'tmpl')
-        tmpl = roifilt2(flt, tmpl, BW);
-    end
+        if isfield(handles, 'tmpl')
+            tmpl = roifilt2(flt, tmpl, BW);
+        end
     end
     prf = improfile(img, pos(:, 1), pos(:, 2), 'nearest');
     
     % If there is a template, extract the data from the template
     if isfield(handles, 'tmpl')
-       dataTmpl(:, stk) = improfile(tmpl, pos(:, 1), pos(:, 2), 'nearest');
+        dataTmpl(:, stk) = improfile(tmpl, pos(:, 1), pos(:, 2), 'nearest');
     end
     data(3:end, stk + 3) = num2cell(prf);
 end
@@ -123,13 +123,13 @@ colrs = jet(handles.stackNum);
 h = plot(cell2mat(val));
 set(h, {'color'}, num2cell(colrs, 2));
 txt = {'Evolution over time of cross section (Blue \rightarrow Red)', ...
-       ['Slice: ', mat2str(handles.sliceIdx), note]};
+    ['Slice: ', mat2str(handles.sliceIdx), note]};
 title(txt);
 ylabel('Amplitude');
 txt = strcat('Pixels along cross section:', ...
-              mat2str(round(pos(1, :))), ...
-              '\rightarrow', ...
-              mat2str(round(pos(2, :))));
+    mat2str(round(pos(1, :))), ...
+    '\rightarrow', ...
+    mat2str(round(pos(2, :))));
 xlabel(txt);
 if isfield(handles, 'tmpl')
     subplot(2, pltCols, 3, 'parent', fig);
@@ -137,13 +137,13 @@ if isfield(handles, 'tmpl')
     h = plot(dataTmpl);
     set(h, {'color'}, num2cell(colrs, 2));
     txt = {'Evolution over time of cross section (Blue \rightarrow Red)', ...
-           ['Slice: ', mat2str(handles.sliceIdx), note]};
+        ['Slice: ', mat2str(handles.sliceIdx), note]};
     title(txt);
     ylabel('Amplitude (Template)');
     txt = strcat('Pixels along cross section:', ...
-                  mat2str(round(pos(1, :))), ...
-                  '\rightarrow', ...
-                  mat2str(round(pos(2, :))));
+        mat2str(round(pos(1, :))), ...
+        '\rightarrow', ...
+        mat2str(round(pos(2, :))));
     xlabel(txt);
 end
 
@@ -163,7 +163,7 @@ h = plot(cell2mat(val'));
 colrs = jet(lcx);
 set(h, {'color'}, num2cell(colrs, 2));
 txt = {'Evolution over time of each pixel in the cross section (Blue \rightarrow Red)', ...
-       ['Slice: ', mat2str(handles.sliceIdx), note]};
+    ['Slice: ', mat2str(handles.sliceIdx), note]};
 title(txt);
 ylabel('Amplitude');
 xlabel('Time [frames]');
@@ -173,7 +173,7 @@ if isfield(handles, 'tmpl')
     colrs = jet(lcx);
     set(h, {'color'}, num2cell(colrs, 2));
     txt = {'Evolution over time of each pixel in the cross section (Blue \rightarrow Red)', ...
-           ['Slice: ', mat2str(handles.sliceIdx), note]};
+        ['Slice: ', mat2str(handles.sliceIdx), note]};
     title(txt);
     ylabel('Amplitude (Template)');
     xlabel('Time [frames]');
@@ -207,18 +207,18 @@ handles.toExcel.fileName = fullfile(dir, char(strcat(handles.machineId, name, '.
 
 % Add button with callback to export to excel
 uicontrol('parent', fig, ...
-          'style', 'pushbutton', ...
-          'string', [char(8594) 'XLSX'], ...
-          'units', 'normalized', ...
-          'position', [0.0, 0.0, 0.1, 0.05], ...
-          'callback', @(hObject, eventdata)exportToExcel(hObject, eventdata, handles));
+    'style', 'pushbutton', ...
+    'string', [char(8594) 'XLSX'], ...
+    'units', 'normalized', ...
+    'position', [0.0, 0.0, 0.1, 0.05], ...
+    'callback', @(hObject, eventdata)exportToExcel(hObject, eventdata, handles));
 
 % Add another button with callback to calculate diffusion speed
 uicontrol('parent', fig, ...
-          'style', 'pushbutton', ...
-          'string', 'Velocity', ...
-          'units', 'normalized', ...
-          'position', [0.0, 0.95, 0.1, 0.05], ...
-          'callback', @(hObject, eventdata)evalVelocity(hObject, eventdata, handles));
-     
+    'style', 'pushbutton', ...
+    'string', 'Velocity', ...
+    'units', 'normalized', ...
+    'position', [0.0, 0.95, 0.1, 0.05], ...
+    'callback', @(hObject, eventdata)evalVelocity(hObject, eventdata, handles));
+
 guidata(hObject, handles);

@@ -1,15 +1,15 @@
-% Copyright 2023 Andrea Vaccari (avaccari@middlebury.edu)
+% Copyright 2024 Andrea Vaccari (avaccari@middlebury.edu)
 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % any later version.
-% 
+%
 % This program is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -69,7 +69,7 @@ end
 subplot(pltRows, pltCols, 1, 'parent', fig);
 plot(val);
 txt = {'Evolution over time of poly-region average', ...
-       ['Slice: ', mat2str(handles.sliceIdx)]};
+    ['Slice: ', mat2str(handles.sliceIdx)]};
 title(txt);
 ylabel('Average amplitude');
 xlabel('Time [frames]');
@@ -80,7 +80,7 @@ if isfield(handles, 'tmpl')
     subplot(pltRows, pltCols, 2, 'parent', fig);
     plot(tmplData);
     txt = {'Evolution over time of poly-region average', ...
-           ['Slice: ', mat2str(handles.sliceIdx)]};
+        ['Slice: ', mat2str(handles.sliceIdx)]};
     title(txt);
     ylabel('Average amplitude (Template)');
     xlabel('Time [frames]');
@@ -89,7 +89,7 @@ if isfield(handles, 'tmpl')
     subplot(pltRows, pltCols, [3, 4], 'parent', fig);
     plot([val', tmplData']);
     txt = {'Comparison of evolution over time of poly-region averages', ...
-           ['Slice: ', mat2str(handles.sliceIdx)]};
+        ['Slice: ', mat2str(handles.sliceIdx)]};
     title(txt);
     ylabel('Average amplitude');
     xlabel('Time [frames]');
@@ -111,10 +111,10 @@ handles.toExcel.fileName = fullfile(dir, char(strcat(handles.machineId, name, '.
 
 % Add button with callback to export to excell
 uicontrol('parent', fig, ...
-         'style', 'pushbutton', ...
-         'string', [char(8594) 'XLSX'], ...
-         'units', 'normalized', ...
-         'position', [0.0, 0.0, 0.1, 0.05], ...
-         'callback', @(hObject, eventdata)exportToExcel(hObject, eventdata, handles));
+    'style', 'pushbutton', ...
+    'string', [char(8594) 'XLSX'], ...
+    'units', 'normalized', ...
+    'position', [0.0, 0.0, 0.1, 0.05], ...
+    'callback', @(hObject, eventdata)exportToExcel(hObject, eventdata, handles));
 
 guidata(hObject, handles);

@@ -13,20 +13,9 @@
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-% Load stack data from file
-function stack = loadStackFromFile(pName, fName)
-stack = 0;
-
-% Load stack
-data = load(fullfile(pName, fName));
-fnames = fieldnames(data);
-
-% Load the first suitable variable
-for idx = 1 : length(fnames)
-    stack = data.(fnames{idx});
-    if length(size(stack)) == 4
-        break
-    end
-end
-
+% Return the minimum and maximum values of each row of the input matrix
+function mM = minmax(input)
+mM = zeros(size(input, 1), 2);
+mM(:, 1) = min(input, [], 2);
+mM(:, 2) = max(input, [], 2);
 end

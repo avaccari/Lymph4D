@@ -1,24 +1,24 @@
-% Copyright 2023 Andrea Vaccari (avaccari@middlebury.edu)
+% Copyright 2024 Andrea Vaccari (avaccari@middlebury.edu)
 
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % any later version.
-% 
+%
 % This program is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 % Handle line template operations
 function handles = analysisTmpls(handles, objType, operation)
 
-        
+
 % Switch based on template operation
-switch operation   
+switch operation
     % Save template
     case 'save'
         % Switch based on template type
@@ -28,41 +28,41 @@ switch operation
                 if ~(isfield(handles.drawing, 'line') && isvalid(handles.drawing.line))
                     return
                 end
-
-            % We are handling polygons
+                
+                % We are handling polygons
             case 'poly'
                 if ~(isfield(handles.drawing, 'poly') && isvalid(handles.drawing.poly))
                     return
                 end
-
-             % Should never end up here
+                
+                % Should never end up here
             otherwise
                 txt = {'Template type invalid:', ...
-                       ['"', objType, '"']};
+                    ['"', objType, '"']};
                 uiwait(msgbox(txt));
                 return
-        end       
+        end
         prompt = ['Enter name for this ', objType, ':'];
         var = inputdlg(prompt, 'Enter name');
-
+        
         % Check if the answer is valid. If not bail.
         if isempty(var)
             return
         elseif isempty(var{1})
             return
         end
-
+        
         var = [objType, '_', matlab.lang.makeValidName(var{1})];
-        eval([var ['= handles.drawing.', objType, '.getPosition();']]);    
+        eval([var ['= handles.drawing.', objType, '.getPosition();']]);
         file = fullfile(handles.storePath, handles.lastExpFile);
-
+        
         if exist(file, 'file')
             save(file, var, '-append');
         else
             save(file, var);
         end
-
-    % Load template
+        
+        % Load template
     case 'load'
         % Check if there is already a template on the screen.
         if handles.drawing.active
@@ -73,12 +73,12 @@ switch operation
         try
             file = fullfile(handles.storePath, handles.lastExpFile);
             rexp = ['^', objType, '_*'];
-            vars = who('-file', file, '-regexp', rexp); 
-        catch ME
+            vars = who('-file', file, '-regexp', rexp);
+        catch
             uiwait(msgbox(['Cannot locate file containing latest ', objType, ' information']));
             return
         end
-
+        
         % If no objects are stored, notify user
         if isempty(vars)
             txt = ['There is no ', objType, ' stored.'];
@@ -89,20 +89,20 @@ switch operation
         % If more than one object exists, ask user to pick the one they want
         if length(vars) > 1
             [s, v] = listdlg('PromptString', ['Select the desired ', objType, ':'], ...
-                             'SelectionMode', 'single', ...
-                             'ListString', vars);
-
+                'SelectionMode', 'single', ...
+                'ListString', vars);
+            
             % If error, bail
             if v == 0
                 uiwait(msgbox(['There was an error during the ', objType, ' selection process.']));
                 return
             end
-
+            
             obj = vars{s};
         else
             obj = vars{1};
         end
-
+        
         load(file, obj);
         
         switch objType
@@ -113,52 +113,52 @@ switch operation
                 handles = polyCreate(handles, eval(obj));
                 handles.selPolyRbtn.Value = 1.0;
         end
-
-        handles.selection.mode = objType;
-
         
-    % Delete template
+        handles.selection.mode = objType;
+        
+        
+        % Delete template
     case 'delete'
         try
             file = fullfile(handles.storePath, handles.lastExpFile);
             rexp = ['^', objType, '_*'];
-            vars = who('-file', file, '-regexp', rexp); 
-        catch ME
+            vars = who('-file', file, '-regexp', rexp);
+        catch
             msgbox(['Cannot locate file containing latest ', objType, ' information']);
             return
         end
-
+        
         % If no objects are stored, notify user
         if isempty(vars)
             txt = ['There is no ', objType, ' stored.'];
             uiwait(msgbox(txt));
             return
         end
-
+        
         % Ask user to pick the ones they want to delete
         [s, v] = listdlg('PromptString', ['Select ', objType, '(s) to delete:'], ...
-                         'SelectionMode', 'multiple', ...
-                         'ListString', vars);
-
+            'SelectionMode', 'multiple', ...
+            'ListString', vars);
+        
         % If error, bail
         if v == 0
             uiwait(msgbox(['There was an error during the ', objType, ' selection process.']));
             return
         end
-
+        
         % Short of making your own MEX, there is no quick way to remove variables
         % from a .mat file so we load, delete, and save.
         mat = load(file);
-
+        
         for i = 1:length(s)
             mat = rmfield(mat, vars{s(i)});
         end
-
-        save(file, '-struct', 'mat'); 
         
-    % Should never end up here
+        save(file, '-struct', 'mat');
+        
+        % Should never end up here
     otherwise
         txt = {'Template operation invalid:', ...
-               ['"', operation, '"']};
+            ['"', operation, '"']};
         uiwait(msgbox(txt));
 end
