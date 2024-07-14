@@ -781,6 +781,7 @@ handles = guidata(hObject);
 % 3 - 'Difs-Adv.'
 % 4 - 'Difs-Adv.+Src'
 % 5 - 'Comp. Mods'
+% 6 - '3D_Difs-Adv.'
 handles.direction.mapType = get(hObject, 'Value');
 
 % Need to push the data so that it is available in handles.mainGui

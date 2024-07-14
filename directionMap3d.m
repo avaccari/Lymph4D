@@ -14,18 +14,10 @@
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 % Evaluate directional map
-function handles = directionMap(handles)
+function handles = directionMap3d(handles)
+msgbox('Evaluating 3d directional map...');
+return
 method = handles.direction.mapType;
-% Check if it is a 3d analysis
-if method > 5
-    try
-        % Evaluate the 3d directional map
-        handles = directionMap3d(handles);
-    catch ME
-        msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
-    end
-    return
-end
 useHood = handles.direction.useHood;
 hoodSiz = handles.direction.hoodSiz;
 useTimWin = handles.direction.useTimeWin;
