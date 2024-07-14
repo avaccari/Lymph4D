@@ -1046,9 +1046,25 @@ function SetXYUnits_Callback(hObject, ~, ~)
 %        str2double(get(hObject,'String')) returns contents of SetXYUnits as a double
 handles = guidata(hObject);
 
-val = str2double(get(hObject, 'String'));
+val = str2double(split(get(hObject, 'String'), ','));
+switch length(val)
+    case 1
+        txt = sprintf('Only one value entered for dx, dy, dz.\nAssuming dx=dy=dz=%g', val);
+        msgbox(txt);
+        val = [val, val, val];
+    case 2
+        txt = sprintf('Only two values entered for dx, dy, dz.\nAssuming dx=dy=%g dz=%g', val(1), val(2));
+        msgbox(txt);
+        val = [val(1), val(1), val(2)];
+    case 3
+    otherwise
+        txt = sprintf('Too many value provided for dx, dy, dz.');
+        msgbox(txt);
+        return
+end
+
 val = val / 1000000;  % Entered values are in um
-handles.expInfo.ds = [val, val, 1];  % Assumes dx=dy and dz=1
+handles.expInfo.ds = val;
 
 % Need to push the data so that it is available in handles.mainGui
 guidata(hObject, handles);
@@ -1095,7 +1111,7 @@ function setUseDicomChk_Callback(hObject, ~, ~)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of setUseDicomChk
-msgbox('Not implemented. Use entry values');
+msgbox('Not implemented. Enter values manually.');
 set(hObject, 'Value', 0);
 
 

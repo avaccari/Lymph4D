@@ -36,9 +36,9 @@ handles.direction.timeWinSiz = 3;
 handles.direction.smoothModel = false;
 
 % Default spatial and temporal steps
-handles.expInfo.ds = [1, 1, 1];
-handles.expInfo.dt = 1;
+handles.expInfo.ds = [1.0, 1.0, 1.0];
+handles.expInfo.dt = 1.0;
 
 % Define single-sided percentage to be considered outliers
-handles.outliers = 1.;
+handles.outliers = 1.0;
 handles.cOut = [handles.outliers, 100 - handles.outliers];
