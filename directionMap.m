@@ -31,10 +31,15 @@ hoodSiz = handles.direction.hoodSiz;
 useTimWin = handles.direction.useTimeWin;
 winSiz = handles.direction.timeWinSiz;
 useSmooth = handles.direction.smoothModel;
+% Define spatial and temporal steps
 ds = handles.expInfo.ds;
 dt = handles.expInfo.dt;
+% Define time range
+be = handles.dirTempStart;
+en = handles.dirTempEnd - 1;
 
 % Evaluate the ds to use for the Peclet number
+% We are simply using the dx=dy value entered by the user.
 ds_peclet = max(ds(1:2));
 if useHood
     ds_peclet = hoodSiz * ds_peclet;
@@ -146,10 +151,6 @@ if isfield(handles, 'tmpl')
         mic, ...
         cvar);
 end
-
-% Define time range
-be = handles.dirTempStart;
-en = handles.dirTempEnd - 1;
 
 % Switch based on the method
 % Choices (defined in guide):
