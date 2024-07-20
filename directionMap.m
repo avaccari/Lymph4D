@@ -15,276 +15,248 @@
 
 % Evaluate directional map
 function handles = directionMap(handles)
-method = handles.direction.mapType;
-% Check if it is a 3d analysis
-if method > 5
-    try
-        % Evaluate the 3d directional map
-        handles = directionMap3d(handles);
-    catch ME
-        msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
+    method = handles.direction.mapType;
+    % Check if it is a 3d analysis
+    if method > 5
+        try
+            % Evaluate the 3d directional map
+            handles = directionMap3d(handles);
+        catch ME
+            msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
+        end
+        return
     end
-    return
-end
-useHood = handles.direction.useHood;
-hoodSiz = handles.direction.hoodSiz;
-useTimWin = handles.direction.useTimeWin;
-winSiz = handles.direction.timeWinSiz;
-useSmooth = handles.direction.smoothModel;
-% Define spatial and temporal steps
-ds = handles.expInfo.ds;
-dt = handles.expInfo.dt;
-% Define time range
-be = handles.dirTempStart;
-en = handles.dirTempEnd - 1;
-
-% Evaluate the ds to use for the Peclet number
-% We are simply using the dx=dy value entered by the user.
-ds_peclet = max(ds(1:2));
-if useHood
-    ds_peclet = hoodSiz * ds_peclet;
-end
-
-% Notify user that saving is ongoing
-if ~handles.dirMap.quiet
-    h = msgbox('Evaluating directional map...');
-end
-
-% Define the base image
-lmf = handles.stackImg(:, :, handles.sliceIdx, end) - handles.stackImg(:, :, handles.sliceIdx, 1);
-img = lmf;
-
-% Repeat for template, if there is one
-if isfield(handles, 'tmpl')
-    imgTmpl = mean(handles.stackTmpl, 4);
-    imgTmpl = imgTmpl(:, :, handles.sliceIdx);
-end
-
-% Check if a region is defined
-if isfield(handles.drawing, 'poly')
-    % Find enclosing rectangle
-    mM = minmax(handles.drawing.poly.getPosition()');
-    rmM = floor(mM(1, :));
-    cmM = ceil(mM(2, :));
+    useHood = handles.direction.useHood;
+    hoodSiz = handles.direction.hoodSiz;
+    useTimWin = handles.direction.useTimeWin;
+    winSiz = handles.direction.timeWinSiz;
+    useSmooth = handles.direction.smoothModel;
+    % Define spatial and temporal steps
+    ds = handles.expInfo.ds;
+    dt = handles.expInfo.dt;
+    % Define time range
+    be = handles.dirTempStart;
+    en = handles.dirTempEnd - 1;
     
-    % Extract the temporal stack for the current slice
-    stk = squeeze(handles.stackImg(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
-    
-    % If the user wants to smooth the images before fitting the model
-    if useSmooth
-        stk = smooth(stk);
+    % Evaluate the ds to use for the Peclet number
+    % We are simply using the dx=dy value entered by the user.
+    ds_peclet = max(ds(1:2));
+    if useHood
+        ds_peclet = hoodSiz * ds_peclet;
     end
+    
+    % Notify user that saving is ongoing
+    if ~handles.dirMap.quiet
+        h = msgbox('Evaluating directional map...');
+    end
+    
+    % Define the base image
+    lmf = handles.stackImg(:, :, handles.sliceIdx, end) - handles.stackImg(:, :, handles.sliceIdx, 1);
+    img = lmf;
     
     % Repeat for template, if there is one
     if isfield(handles, 'tmpl')
-        stkTmpl = squeeze(handles.stackTmpl(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
+        imgTmpl = mean(handles.stackTmpl, 4);
+        imgTmpl = imgTmpl(:, :, handles.sliceIdx);
+    end
+    
+    % Check if a region is defined
+    if isfield(handles.drawing, 'poly')
+        % Find enclosing rectangle
+        mM = minmax(handles.drawing.poly.getPosition()');
+        rmM = floor(mM(1, :));
+        cmM = ceil(mM(2, :));
+        
+        % Extract the temporal stack for the current slice
+        stk = squeeze(handles.stackImg(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
         
         % If the user wants to smooth the images before fitting the model
         if useSmooth
-            stkTmpl = smooth(stkTmpl);
+            stk = smooth(stk);
         end
-    end
-    
-    % Define the polygon mask
-    mask = handles.drawing.poly.createMask();
-else
-    % Encosing rectangle is the whole image
-    rmM = [2, size(img, 1) - 1];
-    cmM = [2, size(img, 2) - 1];
-    
-    % Extract the temporal stack for the current slice
-    stk = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
-    
-    % If the user wants to smooth the images before fitting the model
-    if useSmooth
-        stk = smooth(stk);
-    end
-    
-    % Repeat for template, if there is one
-    if isfield(handles, 'tmpl')
-        stkTmpl = squeeze(handles.stackTmpl(:, :, handles.sliceIdx, :));
+        
+        % Repeat for template, if there is one
+        if isfield(handles, 'tmpl')
+            stkTmpl = squeeze(handles.stackTmpl(cmM(1)-1:cmM(2)+1, rmM(1)-1:rmM(2)+1, handles.sliceIdx, :));
+            
+            % If the user wants to smooth the images before fitting the model
+            if useSmooth
+                stkTmpl = smooth(stkTmpl);
+            end
+        end
+        
+        % Define the polygon mask
+        mask = handles.drawing.poly.createMask();
+    else
+        % Encosing rectangle is the whole image
+        rmM = [2, size(img, 1) - 1];
+        cmM = [2, size(img, 2) - 1];
+        
+        % Extract the temporal stack for the current slice
+        stk = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
         
         % If the user wants to smooth the images before fitting the model
         if useSmooth
-            stkTmpl = smooth(stkTmpl);
+            stk = smooth(stk);
         end
         
+        % Repeat for template, if there is one
+        if isfield(handles, 'tmpl')
+            stkTmpl = squeeze(handles.stackTmpl(:, :, handles.sliceIdx, :));
+            
+            % If the user wants to smooth the images before fitting the model
+            if useSmooth
+                stkTmpl = smooth(stkTmpl);
+            end
+            
+        end
+        
+        mask = ones(size(img));
     end
     
-    mask = ones(size(img));
-end
-
-% Define global channels arrays (append to these inside each method)
-chnls = {'Max-Min', ...
-    'Luminance', ...
-    'Michelson', ...
-    'C.Var.', ...
-    'Last-First'};
-lMax = max(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
-lMin = min(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
-lAvg = mean(handles.stackImg(:, :, handles.sliceIdx, :), 4);
-lStd = std(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
-mm = lMax - lMin;  % Simple max difference
-lum = (lMax - lMin) ./ lAvg;  % Relative importance of contrast (Weber-Fechner)
-mic = (lMax - lMin) ./ (lMax + lMin);  % Mostly for periodic fuction - visibility (Michelson)
-cvar = lStd ./ lAvg;  % Normalized spread for comparison
-ovrl = cat(3, ...
-    mm, ...
-    lum, ...
-    mic, ...
-    cvar, ...
-    lmf);
-
-% Repeat for template, if there is one
-if isfield(handles, 'tmpl')
-    lMax = max(handles.stackTmpl(:, :, handles.sliceIdx, :), [], 4);
-    lMin = min(handles.stackTmpl(:, :, handles.sliceIdx, :), [], 4);
-    lAvg = mean(handles.stackTmpl(:, :, handles.sliceIdx, :), 4);
-    lStd = std(handles.stackTmpl(:, :, handles.sliceIdx, :), [], 4);
+    % Define global channels arrays (append to these inside each method)
+    chnls = {'Max-Min', ...
+        'Luminance', ...
+        'Michelson', ...
+        'C.Var.', ...
+        'Last-First'};
+    lMax = max(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
+    lMin = min(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
+    lAvg = mean(handles.stackImg(:, :, handles.sliceIdx, :), 4);
+    lStd = std(handles.stackImg(:, :, handles.sliceIdx, :), [], 4);
     mm = lMax - lMin;  % Simple max difference
     lum = (lMax - lMin) ./ lAvg;  % Relative importance of contrast (Weber-Fechner)
     mic = (lMax - lMin) ./ (lMax + lMin);  % Mostly for periodic fuction - visibility (Michelson)
     cvar = lStd ./ lAvg;  % Normalized spread for comparison
-    ovrlTmpl = cat(3, ...
+    ovrl = cat(3, ...
         mm, ...
         lum, ...
         mic, ...
-        cvar);
-end
-
-% Switch based on the method
-% Choices (defined in guide):
-% 1 - 'Time Contr.'
-% 2 - 'Anis. Difs'
-% 3 - 'Difs-Adv.'
-% 4 - 'Difs-Adv.+Src'
-% 5 - 'Comp. Mods'
-switch method
-    % Simple contrast along time axis
-    % Nothing to do. This are the value calculated above.
-    case 1
-        
-        
-        
-        % Anisotropic diffusion
-    case 2
-        
-        % Define model results
-        nc = {'Coeff Max', ...
-            'Reluctance', ...
-            'Coeff Idx', ...
-            'Coeff North', ...
-            'Coeff South', ...
-            'Coeff East', ...
-            'Coeff West', ...
-            'Resid Norm'};
-        snc = length(nc);
-        chnls = [chnls, nc];
-        
-        % Evaluate anisotropic diffusion model on current stack
-        [coeff, ~, resNorm] = modAnisoDiff(stk, ...
-            be, en, ...
-            ds, dt, ...
-            useTimWin, winSiz, ...
-            useHood, hoodSiz);
-        
-        % Store results in overlays
-        [M, I] = max(coeff, [], 3);
-        relc = exp(-M);
-        ovrl = cat(3, ovrl, zeros([size(img), snc]));
-        ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
-            M, ...
-            relc, ...
-            I, ...
-            coeff, ...
-            resNorm);
-        
-        % Repeat for template, if there is one
-        if isfield(handles, 'tmpl')
+        cvar, ...
+        lmf);
+    
+    % Repeat for template, if there is one
+    if isfield(handles, 'tmpl')
+        lMax = max(handles.stackTmpl(:, :, handles.sliceIdx, :), [], 4);
+        lMin = min(handles.stackTmpl(:, :, handles.sliceIdx, :), [], 4);
+        lAvg = mean(handles.stackTmpl(:, :, handles.sliceIdx, :), 4);
+        lStd = std(handles.stackTmpl(:, :, handles.sliceIdx, :), [], 4);
+        mm = lMax - lMin;  % Simple max difference
+        lum = (lMax - lMin) ./ lAvg;  % Relative importance of contrast (Weber-Fechner)
+        mic = (lMax - lMin) ./ (lMax + lMin);  % Mostly for periodic fuction - visibility (Michelson)
+        cvar = lStd ./ lAvg;  % Normalized spread for comparison
+        ovrlTmpl = cat(3, ...
+            mm, ...
+            lum, ...
+            mic, ...
+            cvar);
+    end
+    
+    % Switch based on the method
+    % Choices (defined in guide):
+    % 1 - 'Time Contr.'
+    % 2 - 'Anis. Difs'
+    % 3 - 'Difs-Adv.'
+    % 4 - 'Difs-Adv.+Src'
+    % 5 - 'Comp. Mods'
+    switch method
+        % Simple contrast along time axis
+        % Nothing to do. This are the value calculated above.
+        case 1
             
-            % Evaluate anisotropic diffusion model on template stack
-            [coeff, ~, resNorm] = modAnisoDiff(stkTmpl, ...
+            
+            
+            % Anisotropic diffusion
+        case 2
+            
+            % Define model results
+            nc = {'Coeff Max', ...
+                'Reluctance', ...
+                'Coeff Idx', ...
+                'Coeff North', ...
+                'Coeff South', ...
+                'Coeff East', ...
+                'Coeff West', ...
+                'Resid Norm'};
+            snc = length(nc);
+            chnls = [chnls, nc];
+            
+            % Evaluate anisotropic diffusion model on current stack
+            [coeff, ~, resNorm] = modAnisoDiff(stk, ...
                 be, en, ...
                 ds, dt, ...
                 useTimWin, winSiz, ...
                 useHood, hoodSiz);
             
-            % Store data in overlays
+            % Store results in overlays
             [M, I] = max(coeff, [], 3);
             relc = exp(-M);
-            ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
-            ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
+            ovrl = cat(3, ovrl, zeros([size(img), snc]));
+            ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                 M, ...
                 relc, ...
                 I, ...
                 coeff, ...
                 resNorm);
-        end
-        
-        
-        
-        % Advection-diffusion
-    case 3
-        
-        % Define model results
-        nc = {'Diff Coeff', ...
-            'Reluctance', ...
-            'P�clet Num.', ...
-            'Vmag', ...
-            'Vdir', ...
-            'Vx', ...
-            'Vy', ...
-            'Resid Norm'};
-        snc = length(nc);
-        chnls = [chnls, nc];
-        
-        % Evaluate advection-diffusion model on current stack
-        [coeff, ~, resNorm] = modAdvecDiff(stk, ...
-            be, en, ...
-            ds, dt, ...
-            useTimWin, winSiz, ...
-            useHood, hoodSiz);
-        
-        % Store data in overlays
-        ovrl = cat(3, ovrl, zeros([size(img), snc]));
-        
-        % Adjust for central gradients (non need for the extra pixel at
-        % the edges)
-        cmM = cmM + [-1, 1];
-        rmM = rmM + [-1, 1];
-        relc = exp(-coeff(:, :, 1));
-        vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
-        vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
-        pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-        ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
-            coeff(:, :, 1), ...
-            relc, ...
-            pec, ...
-            vmag, ...
-            vdir, ...
-            coeff(:, :, 2:end), ...
-            resNorm);
-        
-        % Repeat for template, if there is one
-        if isfield(handles, 'tmpl')
             
-            % Evaluate advection-diffusion model on template stack
-            [coeff, ~, resNorm] = modAdvecDiff(stkTmpl, ...
+            % Repeat for template, if there is one
+            if isfield(handles, 'tmpl')
+                
+                % Evaluate anisotropic diffusion model on template stack
+                [coeff, ~, resNorm] = modAnisoDiff(stkTmpl, ...
+                    be, en, ...
+                    ds, dt, ...
+                    useTimWin, winSiz, ...
+                    useHood, hoodSiz);
+                
+                % Store data in overlays
+                [M, I] = max(coeff, [], 3);
+                relc = exp(-M);
+                ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
+                ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
+                    M, ...
+                    relc, ...
+                    I, ...
+                    coeff, ...
+                    resNorm);
+            end
+            
+            
+            
+            % Advection-diffusion
+        case 3
+            
+            % Define model results
+            nc = {'Diff Coeff', ...
+                'Reluctance', ...
+                'P�clet Num.', ...
+                'Vmag', ...
+                'Vdir', ...
+                'Vx', ...
+                'Vy', ...
+                'Resid Norm'};
+            snc = length(nc);
+            chnls = [chnls, nc];
+            
+            % Evaluate advection-diffusion model on current stack
+            [coeff, ~, resNorm] = modAdvecDiff(stk, ...
                 be, en, ...
                 ds, dt, ...
                 useTimWin, winSiz, ...
                 useHood, hoodSiz);
             
             % Store data in overlays
-            ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
+            ovrl = cat(3, ovrl, zeros([size(img), snc]));
             
             % Adjust for central gradients (non need for the extra pixel at
             % the edges)
+            cmM = cmM + [-1, 1];
+            rmM = rmM + [-1, 1];
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
             vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
             pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-            ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
+            ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                 coeff(:, :, 1), ...
                 relc, ...
                 pec, ...
@@ -292,76 +264,76 @@ switch method
                 vdir, ...
                 coeff(:, :, 2:end), ...
                 resNorm);
-        end
-        
-        
-        
-        
-        
-        
-        % Advection-diffusion + source (or sink)
-    case 4
-        
-        % Define model results
-        nc = {'Diff Coeff', ...
-            'Reluctance', ...
-            'P�clet Num.', ...
-            'Vmag', ...
-            'Vdir', ...
-            'Vx', ...
-            'Vy', ...
-            'Source', ...
-            'Resid Norm'};
-        snc = length(nc);
-        chnls = [chnls, nc];
-        
-        % Evaluate advection-diffusion-source model on current stack
-        [coeff, ~, resNorm] = modAdvecDiffSrc(stk, ...
-            be, en, ...
-            ds, dt, ...
-            useTimWin, winSiz, ...
-            useHood, hoodSiz);
-        
-        % Store data in overlays
-        ovrl = cat(3, ovrl, zeros([size(img), snc]));
-        
-        % Adjust for central gradients (non need for the extra pixel at
-        % the edges)
-        cmM = cmM + [-1, 1];
-        rmM = rmM + [-1, 1];
-        relc = exp(-coeff(:, :, 1));
-        vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
-        vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
-        pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-        ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
-            coeff(:, :, 1), ...
-            relc, ...
-            pec, ...
-            vmag, ...
-            vdir, ...
-            coeff(:, :, 2:end), ...
-            resNorm);
-        
-        % Repeat for template, if there is one
-        if isfield(handles, 'tmpl')
             
-            % Evaluate advection-diffusion-source model on template stack
-            [coeff, ~, resNorm] = modAdvecDiffSrc(stkTmpl,  ...
+            % Repeat for template, if there is one
+            if isfield(handles, 'tmpl')
+                
+                % Evaluate advection-diffusion model on template stack
+                [coeff, ~, resNorm] = modAdvecDiff(stkTmpl, ...
+                    be, en, ...
+                    ds, dt, ...
+                    useTimWin, winSiz, ...
+                    useHood, hoodSiz);
+                
+                % Store data in overlays
+                ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
+                
+                % Adjust for central gradients (non need for the extra pixel at
+                % the edges)
+                relc = exp(-coeff(:, :, 1));
+                vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
+                vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
+                pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
+                ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
+                    coeff(:, :, 1), ...
+                    relc, ...
+                    pec, ...
+                    vmag, ...
+                    vdir, ...
+                    coeff(:, :, 2:end), ...
+                    resNorm);
+            end
+            
+            
+            
+            
+            
+            
+            % Advection-diffusion + source (or sink)
+        case 4
+            
+            % Define model results
+            nc = {'Diff Coeff', ...
+                'Reluctance', ...
+                'P�clet Num.', ...
+                'Vmag', ...
+                'Vdir', ...
+                'Vx', ...
+                'Vy', ...
+                'Source', ...
+                'Resid Norm'};
+            snc = length(nc);
+            chnls = [chnls, nc];
+            
+            % Evaluate advection-diffusion-source model on current stack
+            [coeff, ~, resNorm] = modAdvecDiffSrc(stk, ...
                 be, en, ...
                 ds, dt, ...
                 useTimWin, winSiz, ...
                 useHood, hoodSiz);
             
             % Store data in overlays
-            ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
+            ovrl = cat(3, ovrl, zeros([size(img), snc]));
             
             % Adjust for central gradients (non need for the extra pixel at
             % the edges)
+            cmM = cmM + [-1, 1];
+            rmM = rmM + [-1, 1];
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
             vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
             pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-            ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
+            ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
                 coeff(:, :, 1), ...
                 relc, ...
                 pec, ...
@@ -369,141 +341,169 @@ switch method
                 vdir, ...
                 coeff(:, :, 2:end), ...
                 resNorm);
+            
+            % Repeat for template, if there is one
+            if isfield(handles, 'tmpl')
+                
+                % Evaluate advection-diffusion-source model on template stack
+                [coeff, ~, resNorm] = modAdvecDiffSrc(stkTmpl,  ...
+                    be, en, ...
+                    ds, dt, ...
+                    useTimWin, winSiz, ...
+                    useHood, hoodSiz);
+                
+                % Store data in overlays
+                ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
+                
+                % Adjust for central gradients (non need for the extra pixel at
+                % the edges)
+                relc = exp(-coeff(:, :, 1));
+                vmag = sqrt(coeff(:, :, 2).^2 + coeff(:, :, 3).^2);
+                vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
+                pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
+                ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end-snc+1:end) = cat(3, ...
+                    coeff(:, :, 1), ...
+                    relc, ...
+                    pec, ...
+                    vmag, ...
+                    vdir, ...
+                    coeff(:, :, 2:end), ...
+                    resNorm);
+            end
+            
+            
+            
+            % Compare predominance of model
+        case 5
+            
+            
+            % Simpler approach:
+            % At each time, look at the neighboring pixels (NSEW) and figure
+            % out the direction of minimum variation and identify that as the
+            % maximum diffusion direction at next time step. (This assumes that
+            % we just have a diffusive process base entirely on the
+            % concentration of contrast agent).
+            % Repeat for every time slot and take the majority vote (mode) or
+            % the average (?) and associate complex versors to corresponding
+            % directions (and possibly 0 to noise) and plot the corresponsing
+            % phase as direction.
+        case 6
+            
+            
+            
+    end
+    
+    
+    
+    % Remove notification
+    if ~handles.dirMap.quiet
+        try
+            delete(h);
+        catch
         end
-        
-        
-        
-        % Compare predominance of model
-    case 5
-        
-        
-        % Simpler approach:
-        % At each time, look at the neighboring pixels (NSEW) and figure
-        % out the direction of minimum variation and identify that as the
-        % maximum diffusion direction at next time step. (This assumes that
-        % we just have a diffusive process base entirely on the
-        % concentration of contrast agent).
-        % Repeat for every time slot and take the majority vote (mode) or
-        % the average (?) and associate complex versors to corresponding
-        % directions (and possibly 0 to noise) and plot the corresponsing
-        % phase as direction.
-    case 6
-        
-        
-        
-end
-
-
-
-% Remove notification
-if ~handles.dirMap.quiet
-    try
-        delete(h);
-    catch
     end
-end
-
-% Store original results
-ovrlOrig = ovrl;
-handles.ovrl = ovrl;
-if isfield(handles, 'tmpl')
-    ovrlTmplOrig = ovrlTmpl;
-    handles.ovrlTmpl = ovrlTmpl;
-end
-
-% If we are not showing the results, we are done
-if ~handles.dirMap.show
-    return
-end
-
-% Overlay on grayscale version of image
-fig = figure(handles.figs.dirMap);
-fig.Units = 'normalized';
-fig.Resize = 'off';  % Prevent user from resizing the figure
-pos = [0.05, 0.1, 0.9, 0.8];
-if isfield(handles, 'tmpl')
-    posTmpl = [0.05, 0.1, 0.4, 0.8];
-    pos = [0.55, 0.1, 0.4, 0.8];
-end
-
-% Mask the overlays
-ovrlSiz = length(chnls);
-ovrl = ovrl .* repmat(mask, 1, 1, ovrlSiz);
-if isfield(handles, 'tmpl')
-    ovrlTmpl = ovrlTmpl .* repmat(mask, 1, 1, ovrlSiz);
-end
-
-% Convert orignal image to rgb grayscale
-img = repmat(mat2gray(img), 1, 1, 3);
-ax = subplot('position', pos, 'parent', fig);
-imagesc(ax, img);
-title(['Directional Analysis (Temporal stacks: ', ...
-    num2str(handles.dirTempStart), ...
-    '-', ...
-    num2str(handles.dirTempEnd - 1), ...
-    ')']);
-hold(ax, 'on');
-if isfield(handles, 'tmpl')
-    imgTmpl = repmat(1 - imadjust(mat2gray(imgTmpl)), 1, 1, 3);
-    axT = subplot('position', posTmpl, 'parent', fig);
-    imagesc(axT, imgTmpl);
-    title('Directional Analysis (Template)');
-    hold(axT, 'on');
-end
-
-% Show first channel
-channel = 1;
-data = ovrl(:, :, channel);
-h = imagesc(ax, data);
-colormap(ax, 'jet');
-set(h, 'AlphaData', mask);
-colorbar(ax);
-if isfield(handles, 'tmpl')
-    dataTmpl = ovrlTmpl(:, :, channel);
-    hT = imagesc(axT, dataTmpl);
-    colormap(axT, 'jet');
-    set(hT, 'AlphaData', mask);
-    colorbar(axT);
-end
-
-% Show pop-up window with averages for original analysis polygon
-%     origMask = handles.drawing.poly.createMask(h);
-%     origMskd = ovrl .* repmat(origMask, 1, 1, size(ovrl, 3));
-origMskd = ovrl .* repmat(mask, 1, 1, size(ovrl, 3));
-origMskd(origMskd == 0) = nan;
-vals = squeeze(mean(mean(origMskd, 1, "omitnan"), 2, "omitnan"));
-txt = {'Mean values within original polygon:'};
-for ch = 1 : size(ovrl, 3)
-    %             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
-    if strcmp(chnls{ch}, 'Vmag')
-        vm = sqrt(vals(ch + 2)^2 + vals(ch + 3)^2);
-        txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
-    elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
-        txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
-    elseif strcmp(chnls{ch}, 'Vdir')
-        vd = atan2d(vals(ch + 2), vals(ch + 1));
-        txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
-    else
-        txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
+    
+    % Store original results
+    ovrlOrig = ovrl;
+    handles.ovrl = ovrl;
+    if isfield(handles, 'tmpl')
+        ovrlTmplOrig = ovrlTmpl;
+        handles.ovrlTmpl = ovrlTmpl;
     end
-end
-%     txt{end + 1} = ['Pixels within polygon:', num2str(nnz(origMask))];
-txt{end + 1} = ['Pixels within polygon:', num2str(nnz(mask))];
-msgbox(txt,'Avgs in original poly');
-
-
-
-
-
-
-
-% Add channel selector
-uicontrol('parent', fig, ...
-    'style', 'popup', ...
-    'string', chnls, ...
-    'units', 'normalized', ...
-    'position', [0.8, 0.95, 0.2, 0.05], ...
-    'callback', @setChannel);
+    
+    % If we are not showing the results, we are done
+    if ~handles.dirMap.show
+        return
+    end
+    
+    % Overlay on grayscale version of image
+    fig = figure(handles.figs.dirMap);
+    fig.Units = 'normalized';
+    fig.Resize = 'off';  % Prevent user from resizing the figure
+    pos = [0.05, 0.1, 0.9, 0.8];
+    if isfield(handles, 'tmpl')
+        posTmpl = [0.05, 0.1, 0.4, 0.8];
+        pos = [0.55, 0.1, 0.4, 0.8];
+    end
+    
+    % Mask the overlays
+    ovrlSiz = length(chnls);
+    ovrl = ovrl .* repmat(mask, 1, 1, ovrlSiz);
+    if isfield(handles, 'tmpl')
+        ovrlTmpl = ovrlTmpl .* repmat(mask, 1, 1, ovrlSiz);
+    end
+    
+    % Convert orignal image to rgb grayscale
+    img = repmat(mat2gray(img), 1, 1, 3);
+    ax = subplot('position', pos, 'parent', fig);
+    imagesc(ax, img);
+    title(['Directional Analysis (Temporal stacks: ', ...
+        num2str(handles.dirTempStart), ...
+        '-', ...
+        num2str(handles.dirTempEnd - 1), ...
+        ')']);
+    hold(ax, 'on');
+    if isfield(handles, 'tmpl')
+        imgTmpl = repmat(1 - imadjust(mat2gray(imgTmpl)), 1, 1, 3);
+        axT = subplot('position', posTmpl, 'parent', fig);
+        imagesc(axT, imgTmpl);
+        title('Directional Analysis (Template)');
+        hold(axT, 'on');
+    end
+    
+    % Show first channel
+    channel = 1;
+    data = ovrl(:, :, channel);
+    h = imagesc(ax, data);
+    colormap(ax, 'jet');
+    set(h, 'AlphaData', mask);
+    colorbar(ax);
+    if isfield(handles, 'tmpl')
+        dataTmpl = ovrlTmpl(:, :, channel);
+        hT = imagesc(axT, dataTmpl);
+        colormap(axT, 'jet');
+        set(hT, 'AlphaData', mask);
+        colorbar(axT);
+    end
+    
+    % Show pop-up window with averages for original analysis polygon
+    %     origMask = handles.drawing.poly.createMask(h);
+    %     origMskd = ovrl .* repmat(origMask, 1, 1, size(ovrl, 3));
+    origMskd = ovrl .* repmat(mask, 1, 1, size(ovrl, 3));
+    origMskd(origMskd == 0) = nan;
+    vals = squeeze(mean(mean(origMskd, 1, "omitnan"), 2, "omitnan"));
+    txt = {'Mean values within original polygon:'};
+    for ch = 1 : size(ovrl, 3)
+        %             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
+        if strcmp(chnls{ch}, 'Vmag')
+            vm = sqrt(vals(ch + 2)^2 + vals(ch + 3)^2);
+            txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
+        elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
+            txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
+        elseif strcmp(chnls{ch}, 'Vdir')
+            vd = atan2d(vals(ch + 2), vals(ch + 1));
+            txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
+        else
+            txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
+        end
+    end
+    %     txt{end + 1} = ['Pixels within polygon:', num2str(nnz(origMask))];
+    txt{end + 1} = ['Pixels within polygon:', num2str(nnz(mask))];
+    msgbox(txt,'Avgs in original poly');
+    
+    
+    
+    
+    
+    
+    
+    % Add channel selector
+    uicontrol('parent', fig, ...
+        'style', 'popup', ...
+        'string', chnls, ...
+        'units', 'normalized', ...
+        'position', [0.8, 0.95, 0.2, 0.05], ...
+        'callback', @setChannel);
     function setChannel(src, ~)
         channel = src.Value;
         
@@ -558,26 +558,26 @@ uicontrol('parent', fig, ...
                 end
         end
     end
-
-% Add slider bar to adjust overlay intensity
-hsldr = uicontrol('parent', fig, ...
-    'style', 'slider', ...
-    'min', 0, ...
-    'max', 1, ...
-    'value', 1, ...
-    'units', 'normalized', ...
-    'position', [0.5, 0, 0.45, 0.05]);
-addlistener(hsldr, 'Value', 'PostSet', @setOverlay);
-
-% Add slider bar to adjust overlay threshold
-hthrs = uicontrol('parent', fig, ...
-    'style', 'slider', ...
-    'min', 0, ...
-    'max', 1, ...
-    'value', 0, ...
-    'units', 'normalized', ...
-    'position', [0.95, 0.1, 0.05, 0.8]);
-addlistener(hthrs, 'Value', 'PostSet', @setOverlay);
+    
+    % Add slider bar to adjust overlay intensity
+    hsldr = uicontrol('parent', fig, ...
+        'style', 'slider', ...
+        'min', 0, ...
+        'max', 1, ...
+        'value', 1, ...
+        'units', 'normalized', ...
+        'position', [0.5, 0, 0.45, 0.05]);
+    addlistener(hsldr, 'Value', 'PostSet', @setOverlay);
+    
+    % Add slider bar to adjust overlay threshold
+    hthrs = uicontrol('parent', fig, ...
+        'style', 'slider', ...
+        'min', 0, ...
+        'max', 1, ...
+        'value', 0, ...
+        'units', 'normalized', ...
+        'position', [0.95, 0.1, 0.05, 0.8]);
+    addlistener(hthrs, 'Value', 'PostSet', @setOverlay);
     function setOverlay(~, ~)
         data = ovrl(:, :, channel);
         mM = minmax(data(:)');
@@ -592,16 +592,16 @@ addlistener(hthrs, 'Value', 'PostSet', @setOverlay);
             set(hT, 'AlphaData', hsldr.Value * tmaskTmpl);
         end
     end
-
-
-
-% Add button with callback to smooth the results
-uicontrol('parent', fig, ...
-    'style', 'pushbutton', ...
-    'string', 'Smooth', ...
-    'units', 'normalized', ...
-    'position', [0.0, 0.95, 0.1, 0.05], ...
-    'callback', @smoothResults);
+    
+    
+    
+    % Add button with callback to smooth the results
+    uicontrol('parent', fig, ...
+        'style', 'pushbutton', ...
+        'string', 'Smooth', ...
+        'units', 'normalized', ...
+        'position', [0.0, 0.95, 0.1, 0.05], ...
+        'callback', @smoothResults);
     function smoothResults(~, ~)
         % Store original
         fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
@@ -629,16 +629,16 @@ uicontrol('parent', fig, ...
             set(axT, 'CLim', mM);
         end
     end
-
-
-
-% Add button with callback to reset the results
-uicontrol('parent', fig, ...
-    'style', 'pushbutton', ...
-    'string', 'Reset', ...
-    'units', 'normalized', ...
-    'position', [0.1, 0.95, 0.1, 0.05], ...
-    'callback', @resetResults);
+    
+    
+    
+    % Add button with callback to reset the results
+    uicontrol('parent', fig, ...
+        'style', 'pushbutton', ...
+        'string', 'Reset', ...
+        'units', 'normalized', ...
+        'position', [0.1, 0.95, 0.1, 0.05], ...
+        'callback', @resetResults);
     function resetResults(~, ~)
         ovrl = ovrlOrig;
         if isfield(handles, 'tmpl')
@@ -675,16 +675,16 @@ uicontrol('parent', fig, ...
         end
         
     end
-
-
-
-% Add button with callback to apply velocity magnitude mask
-uicontrol('parent', fig, ...
-    'style', 'pushbutton', ...
-    'string', 'Vmag mask', ...
-    'units', 'normalized', ...
-    'position', [0.2, 0.95, 0.1, 0.05], ...
-    'callback', @vMagMask);
+    
+    
+    
+    % Add button with callback to apply velocity magnitude mask
+    uicontrol('parent', fig, ...
+        'style', 'pushbutton', ...
+        'string', 'Vmag mask', ...
+        'units', 'normalized', ...
+        'position', [0.2, 0.95, 0.1, 0.05], ...
+        'callback', @vMagMask);
     function vMagMask(~, ~)
         % Load the alpha magnitude from the Vmag channel
         idx = find(strcmp(chnls, 'Vmag'));
@@ -703,17 +703,17 @@ uicontrol('parent', fig, ...
             set(hT, 'AlphaData', alpha);
         end
     end
-
-
-
-satLevel = 0.1;
-% Add button with callback to apply color saturation
-uicontrol('parent', fig, ...
-    'style', 'pushbutton', ...
-    'string', 'Saturate', ...
-    'units', 'normalized', ...
-    'position', [0.3, 0.95, 0.1, 0.05], ...
-    'callback', @colSaturation);
+    
+    
+    
+    satLevel = 0.1;
+    % Add button with callback to apply color saturation
+    uicontrol('parent', fig, ...
+        'style', 'pushbutton', ...
+        'string', 'Saturate', ...
+        'units', 'normalized', ...
+        'position', [0.3, 0.95, 0.1, 0.05], ...
+        'callback', @colSaturation);
     function colSaturation(~, ~)
         q = prctile(data(:), [satLevel, 100 - satLevel]);
         set(ax, 'CLim', q);
@@ -738,15 +738,15 @@ uicontrol('parent', fig, ...
             end
         end
     end
-
-
-% Add entry box to specify color saturation level
-uicontrol('parent', fig, ...
-    'style','edit',...
-    'string','0.1%',...
-    'units','normalized',...
-    'position',[0.4, 0.95, 0.1, 0.05],...
-    'callback', @setSaturation);
+    
+    
+    % Add entry box to specify color saturation level
+    uicontrol('parent', fig, ...
+        'style','edit',...
+        'string','0.1%',...
+        'units','normalized',...
+        'position',[0.4, 0.95, 0.1, 0.05],...
+        'callback', @setSaturation);
     function setSaturation(src, evt)
         str = get(src, 'String');
         num = str2double(str);
@@ -762,42 +762,42 @@ uicontrol('parent', fig, ...
         
         colSaturation(src, evt);
     end
-
-% Add button to toggle quiver
-hqtgl = uicontrol('parent', fig, ...
-    'visible', 'off', ...
-    'style', 'toggleButton', ...
-    'string', 'Qvr', ...
-    'units', 'normalized', ...
-    'position', [0.5, 0.95, 0.05, 0.05], ...
-    'tag', 'QTgl', ...
-    'callback', @drawQuiver);
-
-% Add silder to control quiver sampling
-hqsmp = uicontrol('parent', fig, ...
-    'visible', 'off', ...
-    'style', 'slider', ...
-    'min', 0, ...
-    'max', 1, ...
-    'SliderStep', [0.1, 0.1], ...
-    'value', 0, ...
-    'units', 'normalized', ...
-    'tag', 'QSmp', ...
-    'callback', @drawQuiver, ...
-    'position', [0.55, 0.95, 0.1, 0.05]);
-
-% Add slider to control quiver scaling
-hqsca = uicontrol('parent', fig, ...
-    'visible', 'off', ...
-    'style', 'slider', ...
-    'min', 0.1, ...
-    'max', 2, ...
-    'SliderStep', [0.1, 0.1], ...
-    'value', 0.1, ...
-    'units', 'normalized', ...
-    'tag', 'QSca', ...
-    'callback', @drawQuiver, ...
-    'position', [0.65, 0.95, 0.1, 0.05]);
+    
+    % Add button to toggle quiver
+    hqtgl = uicontrol('parent', fig, ...
+        'visible', 'off', ...
+        'style', 'toggleButton', ...
+        'string', 'Qvr', ...
+        'units', 'normalized', ...
+        'position', [0.5, 0.95, 0.05, 0.05], ...
+        'tag', 'QTgl', ...
+        'callback', @drawQuiver);
+    
+    % Add silder to control quiver sampling
+    hqsmp = uicontrol('parent', fig, ...
+        'visible', 'off', ...
+        'style', 'slider', ...
+        'min', 0, ...
+        'max', 1, ...
+        'SliderStep', [0.1, 0.1], ...
+        'value', 0, ...
+        'units', 'normalized', ...
+        'tag', 'QSmp', ...
+        'callback', @drawQuiver, ...
+        'position', [0.55, 0.95, 0.1, 0.05]);
+    
+    % Add slider to control quiver scaling
+    hqsca = uicontrol('parent', fig, ...
+        'visible', 'off', ...
+        'style', 'slider', ...
+        'min', 0.1, ...
+        'max', 2, ...
+        'SliderStep', [0.1, 0.1], ...
+        'value', 0.1, ...
+        'units', 'normalized', ...
+        'tag', 'QSca', ...
+        'callback', @drawQuiver, ...
+        'position', [0.65, 0.95, 0.1, 0.05]);
     function drawQuiver(src, ~)
         if isfield(handles, 'hq')
             delete(handles.hq);
@@ -834,30 +834,30 @@ hqsca = uicontrol('parent', fig, ...
             'Color', [1, 1, 1], ...
             'LineWidth', 1.0);
     end
-
-
-% Add button with callback to calculate differences between current and template
-uicontrol('parent', fig, ...
-    'style', 'pushbutton', ...
-    'string', 'Curr vs Tmpl', ...
-    'units', 'normalized', ...
-    'position', [0.0, 0.0, 0.15, 0.05], ...
-    'callback', @(hObject, eventdata)compDirection(hObject, eventdata, handles));
-
-
-
-% Add text block to show values under mouse
-info = uicontrol('parent', fig, ...
-    'style', 'text', ...
-    'string', 'Velocity', ...
-    'horizontalAlignment', 'left', ...
-    'units', 'normalized', ...
-    'position', [0.16, 0.0, 0.33, 0.06]);
-
-
-
-% Configure the figure to provide live data as the mouse is moved
-fig.WindowButtonMotionFcn = @showVelInfo;
+    
+    
+    % Add button with callback to calculate differences between current and template
+    uicontrol('parent', fig, ...
+        'style', 'pushbutton', ...
+        'string', 'Curr vs Tmpl', ...
+        'units', 'normalized', ...
+        'position', [0.0, 0.0, 0.15, 0.05], ...
+        'callback', @(hObject, eventdata)compDirection(hObject, eventdata, handles));
+    
+    
+    
+    % Add text block to show values under mouse
+    info = uicontrol('parent', fig, ...
+        'style', 'text', ...
+        'string', 'Velocity', ...
+        'horizontalAlignment', 'left', ...
+        'units', 'normalized', ...
+        'position', [0.16, 0.0, 0.33, 0.06]);
+    
+    
+    
+    % Configure the figure to provide live data as the mouse is moved
+    fig.WindowButtonMotionFcn = @showVelInfo;
     function showVelInfo(src, ~)
         % Get location of mouse respect to application window
         mPos = get(src, 'currentPoint');  % (0,0) is bottom-left
@@ -913,14 +913,14 @@ fig.WindowButtonMotionFcn = @showVelInfo;
         end
         
     end
-
-% Add button with callback to do polygon analysis
-uicontrol('parent', fig, ...
-    'style', 'pushbutton', ...
-    'string', 'Polygon', ...
-    'units', 'normalized', ...
-    'position', [0.0, 0.90, 0.1, 0.05], ...
-    'callback', @polygon);
+    
+    % Add button with callback to do polygon analysis
+    uicontrol('parent', fig, ...
+        'style', 'pushbutton', ...
+        'string', 'Polygon', ...
+        'units', 'normalized', ...
+        'position', [0.0, 0.90, 0.1, 0.05], ...
+        'callback', @polygon);
     function polygon(~, ~)
         poly = impoly(ax);
         showData(false);
@@ -956,15 +956,15 @@ uicontrol('parent', fig, ...
             end
         end
     end
-
-
-% Add button with callback to export overlay file
-uicontrol('parent', fig, ...
-    'style', 'pushbutton', ...
-    'string', 'Ovrls ->', ...
-    'units', 'normalized', ...
-    'position', [0.1, 0.90, 0.1, 0.05], ...
-    'callback', @exportOvrl)
+    
+    
+    % Add button with callback to export overlay file
+    uicontrol('parent', fig, ...
+        'style', 'pushbutton', ...
+        'string', 'Ovrls ->', ...
+        'units', 'normalized', ...
+        'position', [0.1, 0.90, 0.1, 0.05], ...
+        'callback', @exportOvrl)
     function exportOvrl(~, ~)
         % Build unique file name
         time = char(datetime('now', 'Format', 'yyyyMMddHHmmss'));
@@ -1031,9 +1031,9 @@ end
 
 % Apply smoothing filter
 function smthImg = smooth(img)
-% Smooth with 3x3 Gaussian
-fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
-smthImg = imfilter(img, fil, 'replicate', 'same');
+    % Smooth with 3x3 Gaussian
+    fil = [[1,2,1];[2,4,2];[1,2,1]]/16;  % A 3x3 "Gaussian" kernel
+    smthImg = imfilter(img, fil, 'replicate', 'same');
 end
 
 

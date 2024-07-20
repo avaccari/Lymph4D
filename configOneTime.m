@@ -15,55 +15,56 @@
 
 % --- Configure one-time only global values
 function handles = configOneTime(handles)
-
-% Initialisation of POI Libs
-% Add Java POI Libs to matlab javapath
-if isdeployed == false
-    [loc, ~, ~] = fileparts(mfilename('fullpath'));
-    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-3.8-20120326.jar']);
-    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-ooxml-3.8-20120326.jar']);
-    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar']);
-    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar']);
-    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar']);
-    javaaddpath([loc, '/3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar']);
-    addpath([loc, '/3rdParty/xlwrite']);
-    addpath([loc, '/3rdParty/colorcet']);
-end
-
-% Initialize some "globals"
-[handles.storePath, ~, ~] = fileparts(mfilename('fullpath'));
-
-% Figures id
-handles.figs.lineAnalyze = 1;
-handles.figs.evalVelocity = 2;
-handles.figs.polyAnalyze = 3;
-handles.figs.dirMap = 4;
-
-% Get unique id
-handles.machineId = getUniqueId();
-handles.lastExpFile = char(strcat(handles.machineId, 'lastExp.mat'));
-
-% Create a list of available colormaps
-cmapDir = fullfile(matlabroot, '/toolbox/matlab/graphics/color/*.m');
-cmaps = dir(cmapDir);
-cmaps = {cmaps.name};
-handles.cmaps = cellfun(@(x) erase(x, '.m'), cmaps, 'UniformOutput', false);
-
-% Start Parallel Pool (if Distrib_Computing_Toolbox is available)
-if canUseParallelPool()
-    p = gcp('nocreate');
-    if isempty(p)
-        h = msgbox('Starting parallel pool using the default settings...');
-        parpool;
-        try
-            delete(h);
-        catch
-        end
+    
+    % Initialisation of POI Libs
+    % Add Java POI Libs to matlab javapath
+    if isdeployed == false
+        [loc, ~, ~] = fileparts(mfilename('fullpath'));
+        javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-3.8-20120326.jar']);
+        javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-ooxml-3.8-20120326.jar']);
+        javaaddpath([loc, '/3rdParty/xlwrite/poi_library/poi-ooxml-schemas-3.8-20120326.jar']);
+        javaaddpath([loc, '/3rdParty/xlwrite/poi_library/xmlbeans-2.3.0.jar']);
+        javaaddpath([loc, '/3rdParty/xlwrite/poi_library/dom4j-1.6.1.jar']);
+        javaaddpath([loc, '/3rdParty/xlwrite/poi_library/stax-api-1.0.1.jar']);
+        addpath([loc, '/3rdParty/xlwrite']);
+        addpath([loc, '/3rdParty/colorcet']);
     end
-else
-    msgbox('No parallel pool available, using single thread.');
-end
-
-% Set default values
-handles = configDefaults(handles);
-
+    
+    % Initialize some "globals"
+    [handles.storePath, ~, ~] = fileparts(mfilename('fullpath'));
+    
+    % Figures id
+    handles.figs.lineAnalyze = 1;
+    handles.figs.evalVelocity = 2;
+    handles.figs.polyAnalyze = 3;
+    handles.figs.dirMap = 4;
+    handles.figs.dirMap3d = 5;
+    
+    % Get unique id
+    handles.machineId = getUniqueId();
+    handles.lastExpFile = char(strcat(handles.machineId, 'lastExp.mat'));
+    
+    % Create a list of available colormaps
+    cmapDir = fullfile(matlabroot, '/toolbox/matlab/graphics/color/*.m');
+    cmaps = dir(cmapDir);
+    cmaps = {cmaps.name};
+    handles.cmaps = cellfun(@(x) erase(x, '.m'), cmaps, 'UniformOutput', false);
+    
+    % Start Parallel Pool (if Distrib_Computing_Toolbox is available)
+    if canUseParallelPool()
+        p = gcp('nocreate');
+        if isempty(p)
+            h = msgbox('Starting parallel pool using the default settings...');
+            parpool;
+            try
+                delete(h);
+            catch
+            end
+        end
+    else
+        msgbox('No parallel pool available, using single thread.');
+    end
+    
+    % Set default values
+    handles = configDefaults(handles);
+    
