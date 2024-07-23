@@ -26,9 +26,11 @@ function handles = directionMap3d(handles)
     dt = handles.expInfo.dt;
     % Define time range
     be = handles.dirTempStart;
+    % This will automatically drop the last temporal slice of GI (see
+    % in the model files)
     en = handles.dirTempEnd - 1;
     % Grab image
-    stk= handles.stackImg;
+    stk = handles.stackImg;
 
     % Notify user that operation is ongoing
     if ~handles.dirMap.quiet
@@ -40,8 +42,8 @@ function handles = directionMap3d(handles)
     % 1 - 5 (2d)
     % 6 - '3D_Difs-Adv.'
     switch method
-        % Simple contrast along time axis
-        % Nothing to do. This are the value calculated above.
+            % Simple contrast along time axis
+            % Nothing to do. This are the value calculated above.
         case 1
         case 2
         case 3
@@ -50,17 +52,17 @@ function handles = directionMap3d(handles)
             % 3D diffusion-advection model
         case 6
             % Evaluate the advection-diffusion model
-            coeff = modAdvecDiff3d(stk, ds, dt);
+            coeff = modAdvecDiff3d(stk, be, en, ds, dt, useHood, hoodSiz);
 
             % Evaluate derived parameters
             % Velocity magnitude
-            coeff = cat(4, coeff, sqrt(coeff(:,:,:,2).^2 + coeff(:,:,:,3).^2 + coeff(:,:,:,4).^2));
+            coeff = cat(4, coeff, sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2));
 
             % Specify parameters to display
             nc = {'Diff Coeff', ...
-                  'Vx', ...
-                  'Vy', ...
-                  'Vz', ...
+                      'Vx', ...
+                      'Vy', ...
+                      'Vz', ...
                   'Vmag'};
 
     end

@@ -26,15 +26,15 @@
 %   xm = argmin_x{0.5 * ||A' * x - y||^2_2}
 %   0 <= x_k
 % In this case the A and y are the temporal series of the values
-function coeff = modAdvecDiff3d(stk, ds, dt)
+function coeff = modAdvecDiff3d(stk, be, en, ds, dt, useHood, hoodSiz)
     % Calculate the time series of gradients and laplacians
     % When visualized, the order of the coordinates in the stack is row, col, z, t
     % so, using the standard visualization, we will consider y, x, z, t for the
     % derivatives
-    
+
     % Gradient
     [Ix, Iy, Iz, ~] = gradient(stk, ds(2), ds(1), ds(3), 1);
-    
+
     % Calculate Laplacian for each time entry
     sizeStk = size(stk);
     tLen = sizeStk(4);
@@ -43,21 +43,21 @@ function coeff = modAdvecDiff3d(stk, ds, dt)
         % Laplacian compensated for (del^2 u)/2/n, where n is ndims(u)
         lap(:, :, :, tIdx) = 6 * del2(stk(:, :, :, tIdx), ds(2), ds(1), ds(3));
     end
-    
+
     % Stack the gradient image
     GI = cat(5, lap, -Ix, -Iy, -Iz);
-    
+
     % Calculate the time series of the differences
     % [(2)-X(1)  X(3)-X(2) ... X(n)-X(n-1)]
     y = diff(stk, 1, 4) / dt;
-    
+
     % The forward modes evaluates future ys based on the current GI. GI has an
     % additional temporal step which is not used in the forward model so we can
-    % drop it.
-    GI = GI(:, :, :, 1:end - 1, :);
-    
+    % drop it. 1 is already subtracted from en and en automatically gets
+    % the value of the number of available temporal slices.
+    GI = GI(:, :, :, be:en, :);
+    y = y(:, :, :, be:en);
+
     % Evaluate the x (coeff)
-    coeff = evalAdvecDiff3d(GI, y);
+    coeff = evalAdvecDiff3d(GI, y, useHood, hoodSiz);
 end
-
-

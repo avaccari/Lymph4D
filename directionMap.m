@@ -36,7 +36,7 @@ function handles = directionMap(handles)
     dt = handles.expInfo.dt;
     % Define time range
     be = handles.dirTempStart;
-    en = handles.dirTempEnd - 1;
+    en = handles.dirTempEnd - 1;  % This will automatically drop the uneeded last slice of GI
     
     % Evaluate the ds to use for the Peclet number
     % We are simply using the dx=dy value entered by the user.
