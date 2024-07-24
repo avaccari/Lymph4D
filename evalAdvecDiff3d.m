@@ -34,8 +34,8 @@ function coeff = evalAdvecDiff3d(GI, y, useHood, hoodSiz)
     % Calculate the advection-diffusion parameters
     % TODO think about the following: optimization with local regularization
     % in 3x3x3 neighborhood
-    [sc, sr, sd, st, ~] = size(GI);
-    coeff = zeros(sc, sr, sd, size(GI, 5)); % An array to hold the model coefficients
+    [sc, sr, sd, st, ch] = size(GI);
+    coeff = zeros(sc, sr, sd, ch); % An array to hold the model coefficients
 
     % If we are using the neighborhood:
     % - pad the coeff array with repetition in x, y, and z depending on the hoodSiz
@@ -58,8 +58,8 @@ function coeff = evalAdvecDiff3d(GI, y, useHood, hoodSiz)
                     % y1(t) with the value of y at time (t)
                     % GI1(t, :) with the gradients corresponding to that
                     % particluar y1(t)
-                    y1 = reshape(permute(squeeze(yp(c:c + hoodSiz - 1, r:r + hoodSiz - 1, d:d + hoodSiz - 1, :)), [4, 1, 2, 3]), hoodSiz * hoodSiz * hoodSiz * size(y, 4), 1);
-                    GI1 = reshape(permute(squeeze(GIp(c:c + hoodSiz - 1, r:r + hoodSiz - 1, d:d + hoodSiz - 1, :, :)), [4, 1, 2, 3, 5]), length(y1), size(GI, 5));
+                    y1 = reshape(permute(squeeze(yp(c:c + hoodSiz - 1, r:r + hoodSiz - 1, d:d + hoodSiz - 1, :)), [4, 1, 2, 3]), hoodSiz * hoodSiz * hoodSiz * st, 1);
+                    GI1 = reshape(permute(squeeze(GIp(c:c + hoodSiz - 1, r:r + hoodSiz - 1, d:d + hoodSiz - 1, :, :)), [4, 1, 2, 3, 5]), length(y1), ch);
                     coeff(c, r, d, :) = lsqlin(GI1, y1, A, b, Aeq, beq, lb, ub, x0, options);
                 end
             end
