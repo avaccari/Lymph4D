@@ -14,14 +14,14 @@
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 % Evaluate model
-function coeff = evalAdvecDiff3d(GI, y, useHood, hoodSiz)
+function coeff = evalAdvecDiffSrc3d(GI, y, useHood, hoodSiz)
     % Setup constraint problem
     A = [];
     b = [];
     Aeq = [];
     beq = [];
-    lb = [0, -Inf, -Inf, -Inf];
-    ub = [Inf, Inf, Inf, Inf];
+    lb = [0, -Inf, -Inf, -Inf, -Inf];
+    ub = [Inf, Inf, Inf, Inf, Inf];
     x0 = [];
     % Crashes if A and d are zeros
     %     options = optimoptions('lsqlin', ...

@@ -17,23 +17,23 @@ function visualize3d(nc, coeff)
     %% Needed items
     % Small 3d Gaussian to smooth data
     g3d = zeros(3, 3, 3);
-    g3d(:, :, 1) = [[1,1.5,1];[1.5,2.5,1.5];[1,1.5,1]];
-    g3d(:, :, 2) = [[1.5,2.5,1.5];[2.5,4,2.5];[1.5,2.5,1.5]];
+    g3d(:, :, 1) = [[1, 1.5, 1]; [1.5, 2.5, 1.5]; [1, 1.5, 1]];
+    g3d(:, :, 2) = [[1.5, 2.5, 1.5]; [2.5, 4, 2.5]; [1.5, 2.5, 1.5]];
     g3d(:, :, 3) = g3d(:, :, 1);
     g3d = g3d ./ 45;
     smoothViz = 0;
-    
+
     %% Setup figure and layout
     fig = uifigure();
     fig.Name = "3d directional map";
     fig.Position = [100, 100, 1000, 600];
     fig.focus;
-    
+
     %% Main layout
     mainLayout = uigridlayout(fig);
     mainLayout.ColumnWidth = {300, '1x'};
     mainLayout.RowHeight = {'1x'};
-    
+
     %% Configuration layout
     configLayout = uipanel(mainLayout);
     configLayout.Title = 'Configuration';
@@ -55,14 +55,13 @@ function visualize3d(nc, coeff)
         updateImage;
     end
 
-    
     %% Image layout
     imageLayout = uigridlayout(mainLayout);
-    imageLayout.ColumnWidth = {45, '1x',45};
+    imageLayout.ColumnWidth = {45, '1x', 45};
     imageLayout.RowHeight = {35, '1x', 30};
     imageLayout.Layout.Row = 1;
     imageLayout.Layout.Column = 2;
-    
+
     % Add image
     % TODO: make the smoothing dependent on the user
     imgAx = uiaxes(imageLayout);
@@ -78,7 +77,7 @@ function visualize3d(nc, coeff)
     if smoothViz == 1
         dataCh = convn(dataCh, g3d, "same");
     end
-    data = dataCh(:, :, imgZSlice);    
+    data = dataCh(:, :, imgZSlice);
     imgH = imagesc(imgAx, dataCh(:, :, imgZSlice));
     colorbar(imgAx);
 
@@ -92,8 +91,7 @@ function visualize3d(nc, coeff)
         imgChannel = src.ValueIndex;
         updateImage();
     end
-    
-    
+
     % Add the z slider
     zSlider = uislider(imageLayout);
     zSlider.Orientation = 'vertical';
@@ -108,7 +106,6 @@ function visualize3d(nc, coeff)
         updateImage();
     end
 
-    
     % Add quantile clipping slider
     qSlider = uislider(imageLayout, 'range');
     qSlider.Limits = [0, 100];
@@ -133,15 +130,15 @@ function visualize3d(nc, coeff)
         end
         data = dataCh(:, :, imgZSlice);
         imgH.CData = data;
-        switch imgChannel
-            case {2, 3, 4}
+        switch nc{imgChannel}
+            case {'Vx', 'Vy', 'Vz', 'Source'}
                 % Center data
                 xtrema = max(abs(data(:)));
                 clim(imgAx, [-xtrema, xtrema]);
                 colormap(imgAx, turbo(256));
             otherwise
                 clim(imgAx, "auto");
-                colormap(imgAx, parula(256));   
+                colormap(imgAx, parula(256));
         end
     end
 end
