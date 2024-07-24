@@ -15,12 +15,6 @@
 
 function visualize3d(nc, coeff)
     %% Needed items
-    % Small 3d Gaussian to smooth data
-    g3d = zeros(3, 3, 3);
-    g3d(:, :, 1) = [[1, 1.5, 1]; [1.5, 2.5, 1.5]; [1, 1.5, 1]];
-    g3d(:, :, 2) = [[1.5, 2.5, 1.5]; [2.5, 4, 2.5]; [1.5, 2.5, 1.5]];
-    g3d(:, :, 3) = g3d(:, :, 1);
-    g3d = g3d ./ 45;
     smoothViz = 0;
 
     %% Setup figure and layout
@@ -63,7 +57,6 @@ function visualize3d(nc, coeff)
     imageLayout.Layout.Column = 2;
 
     % Add image
-    % TODO: make the smoothing dependent on the user
     imgAx = uiaxes(imageLayout);
     imgAx.XTick = [];
     imgAx.YTick = [];
@@ -75,7 +68,7 @@ function visualize3d(nc, coeff)
     imgRange = [0, 100];
     dataCh = coeff(:, :, :, imgChannel);
     if smoothViz == 1
-        dataCh = convn(dataCh, g3d, "same");
+        dataCh = smooth3(dataCh, 'gaussian', [3, 3, 3]);
     end
     data = dataCh(:, :, imgZSlice);
     imgH = imagesc(imgAx, dataCh(:, :, imgZSlice));
@@ -118,27 +111,36 @@ function visualize3d(nc, coeff)
     end
 
     function updateImage()
-        % data = coeff(:, :, imgZSlice, imgChannel);
-        % Convolve with small Gaussian to smooth
-        % q = quantile(data(:), [imgRange(1), imgRange(2)] / 100);
         dataCh = coeff(:, :, :, imgChannel);
-        q = quantile(dataCh(:), [imgRange(1), imgRange(2)] / 100);
-        dataCh(dataCh < q(1)) = q(1);
-        dataCh(dataCh > q(2)) = q(2);
-        if smoothViz == 1
-            dataCh = convn(dataCh, g3d, "same");
+        switch nc{imgChannel}
+            case {'Vx', 'Vy', 'Vz', 'Source'}
+                % Maintain centered data while clipping
+                q = quantile(abs(dataCh(:)), [imgRange(1), imgRange(2)] / 100);
+                dataCh(dataCh < -q(2)) = -q(2);
+                dataCh((-q(1) < dataCh) & (dataCh < 0)) = -q(1);
+                dataCh((0 < dataCh) & (dataCh < q(1))) = q(1);
+                dataCh(dataCh > q(2)) = q(2);
+            otherwise
+                q = quantile(dataCh(:), [imgRange(1), imgRange(2)] / 100);
+                dataCh(dataCh < q(1)) = q(1);
+                dataCh(dataCh > q(2)) = q(2);
         end
+
+        if smoothViz == 1
+            dataCh = smooth3(dataCh, 'gaussian', [3, 3, 3]);
+        end
+
         data = dataCh(:, :, imgZSlice);
         imgH.CData = data;
         switch nc{imgChannel}
             case {'Vx', 'Vy', 'Vz', 'Source'}
-                % Center data
+                % Center data around zero for better visualization
                 xtrema = max(abs(data(:)));
                 clim(imgAx, [-xtrema, xtrema]);
-                colormap(imgAx, turbo(256));
+                colormap(imgAx, colorcet('D1', 'N', 256));
             otherwise
                 clim(imgAx, "auto");
-                colormap(imgAx, parula(256));
+                colormap(imgAx, colorcet('L20', 'N', 256));
         end
     end
 end

@@ -26,18 +26,25 @@
 %   xm = argmin_x{0.5 * ||A' * x - y||^2_2}
 %   0 <= x_k
 % In this case the A and y are the temporal series of the values
-function coeff = modAdvecDiffSrc3d(stk, be, en, ds, dt, useHood, hoodSiz)
+function coeff = modAdvecDiffSrc3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth)
     % Calculate the time series of gradients and laplacians
     % When visualized, the order of the coordinates in the stack is row, col, z, t
     % so, using the standard visualization, we will consider y, x, z, t for the
     % derivatives
 
+    % If smoothing, smooth each layer of the stack
+    sizeStk = size(stk);
+    tLen = size(stk, 4);
+    if useSmooth
+        for tIdx = 1:tLen
+            stk(:, :, :, tIdx) = smooth3(stk(:, :, :, tIdx), 'gaussian', [3, 3, 3]);
+        end
+    end
+
     % Gradient
     [Ix, Iy, Iz, ~] = gradient(stk, ds(2), ds(1), ds(3), 1);
 
     % Calculate Laplacian for each time entry
-    sizeStk = size(stk);
-    tLen = sizeStk(4);
     lap = zeros(sizeStk);
     for tIdx = 1:tLen
         % Laplacian compensated for (del^2 u)/2/n, where n is ndims(u)

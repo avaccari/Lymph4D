@@ -52,7 +52,7 @@ function handles = directionMap3d(handles)
             % 3D diffusion-advection model
         case 6
             % Evaluate the advection-diffusion model
-            coeff = modAdvecDiff3d(stk, be, en, ds, dt, useHood, hoodSiz);
+            coeff = modAdvecDiff3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
 
             % Evaluate derived parameters
             % Velocity magnitude
@@ -67,14 +67,7 @@ function handles = directionMap3d(handles)
             % 3D diffusion-advection-source model
         case 7
             % Evaluate the advection-diffusion-source model
-            coeff = modAdvecDiffSrc3d(stk, be, en, ds, dt, useHood, hoodSiz);
-
-            % Evaluate derived parameters
-            % Velocity magnitude
-            coeff = cat(4, ...
-                coeff(:, :, :, 1:4), ...
-                sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2), ...
-                coeff(:, :, :, 5));
+            coeff = modAdvecDiffSrc3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
 
             % Specify parameters to display
             nc = {'Diff Coeff', ...
@@ -83,6 +76,16 @@ function handles = directionMap3d(handles)
                       'Vz', ...
                       'Vmag', ...
                   'Source'};
+
+            % Evaluate derived parameters
+            % Velocity magnitude
+            vmag = sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2);
+
+            % Build display array according to nc
+            coeff = cat(4, ...
+                coeff(:, :, :, 1:4), ...
+                vmag, ...
+                coeff(:, :, :, 5));
     end
 
     % Remove notification

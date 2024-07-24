@@ -15,7 +15,7 @@
 
 % --- Configure one-time only global values
 function handles = configOneTime(handles)
-    
+
     % Initialisation of POI Libs
     % Add Java POI Libs to matlab javapath
     if isdeployed == false
@@ -29,27 +29,26 @@ function handles = configOneTime(handles)
         addpath([loc, '/3rdParty/xlwrite']);
         addpath([loc, '/3rdParty/colorcet']);
     end
-    
+
     % Initialize some "globals"
     [handles.storePath, ~, ~] = fileparts(mfilename('fullpath'));
-    
+
     % Figures id
     handles.figs.lineAnalyze = 1;
     handles.figs.evalVelocity = 2;
     handles.figs.polyAnalyze = 3;
     handles.figs.dirMap = 4;
-    handles.figs.dirMap3d = 5;
-    
+
     % Get unique id
     handles.machineId = getUniqueId();
     handles.lastExpFile = char(strcat(handles.machineId, 'lastExp.mat'));
-    
+
     % Create a list of available colormaps
     cmapDir = fullfile(matlabroot, '/toolbox/matlab/graphics/color/*.m');
     cmaps = dir(cmapDir);
     cmaps = {cmaps.name};
     handles.cmaps = cellfun(@(x) erase(x, '.m'), cmaps, 'UniformOutput', false);
-    
+
     % Start Parallel Pool (if Distrib_Computing_Toolbox is available)
     if canUseParallelPool()
         p = gcp('nocreate');
@@ -64,7 +63,6 @@ function handles = configOneTime(handles)
     else
         msgbox('No parallel pool available, using single thread.');
     end
-    
+
     % Set default values
     handles = configDefaults(handles);
-    
