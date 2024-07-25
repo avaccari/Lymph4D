@@ -13,9 +13,16 @@
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-function visualize3d(nc, coeff)
-    %% Needed items
+function visualize3d(nc, coeff, stk)
+    %% Default values for image controls
+    imgZSlice = 1;
+    imgChannel = 1;
+    imgRange = [0, 1];
+    imgAValue = 1;
     smoothViz = 0;
+    useBaseImg = 0;
+    baseQValue = 0.5;
+
 
     %% Setup figure and layout
     fig = uifigure();
@@ -28,26 +35,65 @@ function visualize3d(nc, coeff)
     mainLayout.ColumnWidth = {300, '1x'};
     mainLayout.RowHeight = {'1x'};
 
-    %% Configuration layout
-    configLayout = uipanel(mainLayout);
+    %% Config-analysis layout
+    configAnalysisLayout = uigridlayout(mainLayout);
+    configAnalysisLayout.Layout.Row = 1;
+    configAnalysisLayout.Layout.Column = 1;
+    configAnalysisLayout.ColumnWidth = {'1x'};
+    configAnalysisLayout.RowHeight = {'1x','1x'};
+    
+    %% Configuration analysis layout
+    configLayout = uipanel(configAnalysisLayout);
     configLayout.Title = 'Configuration';
     configLayout.Layout.Row = 1;
     configLayout.Layout.Column = 1;
 
+    %% Configuration layout
     configGrid = uigridlayout(configLayout);
     configGrid.ColumnWidth = {'1x'};
-    configGrid.RowHeight = {20, '1x'};
+    configGrid.RowHeight = {15, 15, 40, '1x'};
 
     % Smooth visualization
     smoothCB = uicheckbox(configGrid);
     smoothCB.Text = 'Gaussian smooth';
     smoothCB.Layout.Row = 1;
     smoothCB.Layout.Column = 1;
-    smoothCB.ValueChangedFcn = @smoothCBCallback;
-    function smoothCBCallback(src, ~)
+    smoothCB.ValueChangedFcn = @smoothCBUpdateImage;
+    function smoothCBUpdateImage(src, ~)
         smoothViz = src.Value;
-        updateImage;
+        updateImage();
     end
+
+    % Use base image to clean data
+    useBaseCB = uicheckbox(configGrid);
+    useBaseCB.Text = 'Use base image to clip results';
+    useBaseCB.Layout.Row = 2;
+    useBaseCB.Layout.Column = 1;
+    useBaseCB.ValueChangedFcn = @useBaseCBUpdateImage;
+    function useBaseCBUpdateImage(src, ~)
+        useBaseImg = src.Value;
+        updateImage();
+    end
+
+    % Specify quantile to clean data
+    useBaseSlider = uislider(configGrid);
+    useBaseSlider.Limits = [0, 100];
+    useBaseSlider.Value = 50;
+    useBaseSlider.Layout.Row = 3;
+    useBaseSlider.Layout.Column = 1;
+    useBaseSlider.ValueChangedFcn = @useBaseSliderUpdateImage;
+    function useBaseSliderUpdateImage(src, ~)
+        baseQValue = src.Value / 100;
+        updateImage();
+    end
+
+    %% Analysis layout
+    analysisconfigLayout = uipanel(configAnalysisLayout);
+    analysisconfigLayout.Title = 'Analysis';
+    analysisconfigLayout.Layout.Row = 2;
+    analysisconfigLayout.Layout.Column = 1;
+
+    
 
     %% Image layout
     imageLayout = uigridlayout(mainLayout);
@@ -56,31 +102,40 @@ function visualize3d(nc, coeff)
     imageLayout.Layout.Row = 1;
     imageLayout.Layout.Column = 2;
 
+
+    % Add base image
+    imgBAx = uiaxes(imageLayout);
+    imgBAx.Visible = 'off';
+    imgBAx.XTick = [];
+    imgBAx.YTick = [];
+    imgBAx.Layout.Row = 2;
+    imgBAx.Layout.Column = 2;
+    imgBH = imagesc(imgBAx, zeros(size(coeff, 1:2)));
+    cb = colorbar(imgBAx);
+    axis(imgBAx, 'tight');
+    cb.Visible = "off";
+
     % Add image
     imgAx = uiaxes(imageLayout);
+    imgAx.Visible = 'off';
     imgAx.XTick = [];
     imgAx.YTick = [];
     imgAx.Layout.Row = 2;
     imgAx.Layout.Column = 2;
-    axis(imgAx, 'tight')
-    imgZSlice = 1;
-    imgChannel = 1;
-    imgRange = [0, 100];
-    dataCh = coeff(:, :, :, imgChannel);
-    if smoothViz == 1
-        dataCh = smooth3(dataCh, 'gaussian', [3, 3, 3]);
-    end
-    data = dataCh(:, :, imgZSlice);
-    imgH = imagesc(imgAx, dataCh(:, :, imgZSlice));
+    imgH = imagesc(imgAx, zeros(size(coeff, 1:2)));
     colorbar(imgAx);
+    axis(imgAx, 'tight');
 
+    % Update images with current values
+    updateImage();
+    
     % Add the coefficient selection drop down
     cDDown = uidropdown(imageLayout);
     cDDown.Items = nc;
     cDDown.Layout.Row = 1;
     cDDown.Layout.Column = 2;
-    cDDown.ValueChangedFcn = @cUpdateImage;
-    function cUpdateImage(src, ~)
+    cDDown.ValueChangedFcn = @cSliderUpdateImage;
+    function cSliderUpdateImage(src, ~)
         imgChannel = src.ValueIndex;
         updateImage();
     end
@@ -89,12 +144,13 @@ function visualize3d(nc, coeff)
     zSlider = uislider(imageLayout);
     zSlider.Orientation = 'vertical';
     zSlider.Limits = [1, size(coeff, 3)];
+    zSlider.Value = 1;
     zSlider.MajorTicks = 1:size(coeff, 3);
     zSlider.MinorTicks = [];
     zSlider.Layout.Row = 2;
     zSlider.Layout.Column = 1;
-    zSlider.ValueChangedFcn = @zUpdateImage;
-    function zUpdateImage(src, ~)
+    zSlider.ValueChangedFcn = @zSliderUpdateImage;
+    function zSliderUpdateImage(src, ~)
         imgZSlice = round(src.Value);
         updateImage();
     end
@@ -102,35 +158,64 @@ function visualize3d(nc, coeff)
     % Add quantile clipping slider
     qSlider = uislider(imageLayout, 'range');
     qSlider.Limits = [0, 100];
+    qSlider.Value = [0, 100];
     qSlider.Layout.Row = 3;
     qSlider.Layout.Column = 2;
-    qSlider.ValueChangedFcn = @qUpdateImage;
-    function qUpdateImage(src, ~)
-        imgRange = src.Value;
+    qSlider.ValueChangedFcn = @qSliderUpdateImage;
+    function qSliderUpdateImage(src, ~)
+        imgRange = src.Value / 100;
         updateImage();
     end
 
-    function updateImage()
-        dataCh = coeff(:, :, :, imgChannel);
+    % Add the alpha slider
+    aSlider = uislider(imageLayout);
+    aSlider.Orientation = 'vertical';
+    aSlider.Limits = [0, 100];
+    aSlider.Value = 100;
+    aSlider.Layout.Row = 2;
+    aSlider.Layout.Column = 3;
+    aSlider.ValueChangedFcn = @aSliderUpdateImage;
+    function aSliderUpdateImage(src, ~)
+        imgAValue = src.Value / 100;
+        updateImage();
+    end
+
+
+
+
+    % Update callback
+    function updateImage()        
+        % Update base image
+        dataB = mean(stk, 4);
+        qb = quantile(dataB(:), [0.05, 0.95, baseQValue]);
+        dataB(dataB < qb(1)) = qb(1);
+        dataB(dataB > qb(2)) = qb(2);
+        imgBH.CData = dataB(:, :, imgZSlice);
+        colormap(imgBAx, colorcet('L1', 'N', 256));
+
+        % Evaluate data ranges based on slider
+        dataq = coeff(:, :, :, imgChannel);
         switch nc{imgChannel}
             case {'Vx', 'Vy', 'Vz', 'Source'}
                 % Maintain centered data while clipping
-                q = quantile(abs(dataCh(:)), [imgRange(1), imgRange(2)] / 100);
-                dataCh(dataCh < -q(2)) = -q(2);
-                dataCh((-q(1) < dataCh) & (dataCh < 0)) = -q(1);
-                dataCh((0 < dataCh) & (dataCh < q(1))) = q(1);
-                dataCh(dataCh > q(2)) = q(2);
+                q = quantile(abs(dataq(:)), [imgRange(1), imgRange(2)]);
+                dataq(dataq < -q(2)) = -q(2);
+                dataq((-q(1) < dataq) & (dataq < 0)) = -q(1);
+                dataq((0 < dataq) & (dataq < q(1))) = q(1);
+                dataq(dataq > q(2)) = q(2);
             otherwise
-                q = quantile(dataCh(:), [imgRange(1), imgRange(2)] / 100);
-                dataCh(dataCh < q(1)) = q(1);
-                dataCh(dataCh > q(2)) = q(2);
+                q = quantile(dataq(:), [imgRange(1), imgRange(2)]);
+                dataq(dataq < q(1)) = q(1);
+                dataq(dataq > q(2)) = q(2);
         end
 
+        % Smooth the volume if required
         if smoothViz == 1
-            dataCh = smooth3(dataCh, 'gaussian', [3, 3, 3]);
+            dataq = smooth3(dataq, 'gaussian', [3, 3, 3]);
         end
 
-        data = dataCh(:, :, imgZSlice);
+        % Update image
+        data = dataq(:, :, imgZSlice);
         imgH.CData = data;
         switch nc{imgChannel}
             case {'Vx', 'Vy', 'Vz', 'Source'}
@@ -142,5 +227,26 @@ function visualize3d(nc, coeff)
                 clim(imgAx, "auto");
                 colormap(imgAx, colorcet('L20', 'N', 256));
         end
+
+        % Update alpha channel
+        alpha = imgAValue * ones(size(data));
+        if useBaseImg
+            alpha(dataB(:, :, imgZSlice) <= qb(3)) = 0;
+        end
+
+        imgH.AlphaData = alpha;
+
     end
 end
+
+% % test code
+% coeff = load("coeff_test.mat");
+% coeff = coeff.coeff;
+% stack = load("stack_test.mat");
+% stk = stack.stk4D;
+% nc = {'Diff Coeff', ...
+%           'Vx', ...
+%           'Vy', ...
+%           'Vz'};
+% 
+% visualize3da(nc, coeff, stk);

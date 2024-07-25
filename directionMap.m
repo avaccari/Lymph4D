@@ -453,7 +453,7 @@ function handles = directionMap(handles)
             vd = atan2d(vals(ch + 2), vals(ch + 1));
             txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
         else
-            txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
+            txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
         end
     end
     %     txt{end + 1} = ['Pixels within polygon:', num2str(nnz(origMask))];
@@ -885,18 +885,18 @@ function handles = directionMap(handles)
             mskd(mskd == 0) = nan;
             vals = squeeze(mean(mean(mskd, 1, "omitnan"), 2, "omitnan"));
             txt = {'Mean values within polygon:'};
-            for ch = 1:size(ovrl, 3)
+            for chn = 1:size(ovrl, 3)
                 %             disp([num2str(ch), ' ', chnls{ch}, ' ', num2str(vals(ch))]);
-                if strcmp(chnls{ch}, 'Vmag')
-                    vm = sqrt(vals(ch + 2) ^ 2 + vals(ch + 3) ^ 2);
-                    txt{end + 1} = [chnls{ch}, ': ', num2str(vm, '%3.2f')];
-                elseif strcmp(chnls{ch}, 'Vx') || strcmp(vals(ch), 'Vy')
-                    txt{end + 1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2f')];
-                elseif strcmp(chnls{ch}, 'Vdir')
-                    vd = atan2d(vals(ch + 2), vals(ch + 1));
-                    txt{end + 1} = [chnls{ch}, ': ', num2str(vd, '%3.f')];
+                if strcmp(chnls{chn}, 'Vmag')
+                    vm = sqrt(vals(chn + 2) ^ 2 + vals(chn + 3) ^ 2);
+                    txt{end + 1} = [chnls{chn}, ': ', num2str(vm, '%3.2f')];
+                elseif strcmp(chnls{chn}, 'Vx') || strcmp(vals(chn), 'Vy')
+                    txt{end + 1} = [chnls{chn}, ': ', num2str(vals(chn), '%3.2f')];
+                elseif strcmp(chnls{chn}, 'Vdir')
+                    vd = atan2d(vals(chn + 2), vals(chn + 1));
+                    txt{end + 1} = [chnls{chn}, ': ', num2str(vd, '%3.f')];
                 else
-                    txt{end +1} = [chnls{ch}, ': ', num2str(vals(ch), '%3.2e')];
+                    txt{end +1} = [chnls{chn}, ': ', num2str(vals(chn), '%3.2e')];
                 end
             end
             txt{end + 1} = ['Pixels within polygon:', num2str(nnz(pMask))];
