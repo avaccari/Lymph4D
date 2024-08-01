@@ -424,13 +424,13 @@ function handles = directionMap(handles)
     channel = 1;
     data = ovrl(:, :, channel);
     h = imagesc(ax, data);
-    colormap(ax, 'jet');
+    colormap(ax, colorcet('L20', 'N', 256));
     set(h, 'AlphaData', mask);
     colorbar(ax);
     if isfield(handles, 'tmpl')
         dataTmpl = ovrlTmpl(:, :, channel);
         hT = imagesc(axT, dataTmpl);
-        colormap(axT, 'jet');
+        colormap(axT, colorcet('L20', 'N', 256));
         set(hT, 'AlphaData', mask);
         colorbar(axT);
     end
@@ -460,6 +460,45 @@ function handles = directionMap(handles)
     txt{end + 1} = ['Pixels within polygon:', num2str(nnz(mask))];
     msgbox(txt, 'Avgs in original poly');
 
+    % Set colormaps and scales
+    function setCMapScale()
+        % Check ranges
+        mM = minmax(data(:)');
+        if isfield(handles, 'tmpl')
+            mMT = minmax(dataTmpl(:)');
+            mM = minmax([mM, mMT]);
+        end
+
+        % Define colormap and scales depending on what is shown
+        switch chnls{channel}
+            case 'Vdir'
+                colormap(ax, colorcet('C3', 'N', 256));
+                if isfield(handles, 'tmpl')
+                    colormap(axT, colorcet('C3', 'N', 256));
+                end
+                scale = [-180, 180];
+            case {'Vx', 'Vy', 'P�clet Num.', 'Source', 'Luminance', 'Michelson', 'C.Var.', 'Last-First'}
+                colormap(ax, colorcet('D1', 'N', 256));
+                if isfield(handles, 'tmpl')
+                    colormap(axT, colorcet('D1', 'N', 256));
+                end
+                mx = max(mM);
+                scale = [-mx, mx];
+            otherwise
+                colormap(ax, colorcet('L20', 'N', 256));
+                if isfield(handles, 'tmpl')
+                    colormap(axT, colorcet('L20', 'N', 256));
+                end
+                scale = mM;
+        end
+
+        % Set color scales
+        set(ax, 'CLim', scale);
+        if isfield(handles, 'tmpl')
+            set(axT, 'CLim', scale);
+        end
+    end
+
     % Add channel selector
     uicontrol('parent', fig, ...
         'style', 'popup', ...
@@ -468,25 +507,20 @@ function handles = directionMap(handles)
         'position', [0.8, 0.95, 0.2, 0.05], ...
         'callback', @setChannel);
     function setChannel(src, ~)
+        % Update displayed data
         channel = src.Value;
 
         data = ovrl(:, :, channel);
         set(h, 'CData', data);
 
-        mM = minmax(data(:)');
-        set(ax, 'CLim', mM);
-
+        % Do the same if there is a template
         if isfield(handles, 'tmpl')
             dataTmpl = ovrlTmpl(:, :, channel);
             set(hT, 'CData', dataTmpl);
-
-            mMT = minmax(dataTmpl(:)');
-
-            % Same scales
-            mM = minmax([mM, mMT]);
-            set(ax, 'CLim', mM);
-            set(axT, 'CLim', mM);
         end
+
+        % Set colormaps and scales
+        setCMapScale();
 
         % If Vmag, show quiver controls
         hqtgl.Visible = 'off'; % Button to toggle quiver on
@@ -496,29 +530,6 @@ function handles = directionMap(handles)
             hqtgl.Visible = 'on';
             hqsca.Visible = 'on';
             hqsmp.Visible = 'on';
-        end
-
-        % Check for special color maps
-        switch chnls{channel}
-            case 'Vdir'
-                colormap(ax, colorcet('C2'));
-                if isfield(handles, 'tmpl')
-                    colormap(axT, colorcet('C2'));
-                end
-            case 'P�clet Num.'
-                colormap(ax, colorcet('D1'));
-                mx = max(mM);
-                scale = [-mx, mx] + 1;
-                set(ax, 'CLim', scale);
-                if isfield(handles, 'tmpl')
-                    colormap(axT, colorcet('D1'));
-                    set(axT, 'CLim', scale);
-                end
-            otherwise
-                colormap(ax, 'jet');
-                if isfield(handles, 'tmpl')
-                    colormap(axT, 'jet');
-                end
         end
     end
 
@@ -543,10 +554,13 @@ function handles = directionMap(handles)
     addlistener(hthrs, 'Value', 'PostSet', @setOverlay);
     function setOverlay(~, ~)
         data = ovrl(:, :, channel);
-        mM = minmax(data(:)');
+        q = prctile(abs(data(:)), 100 * hthrs.Value);
+
         tmask = mask;
-        tmask(data < (mM(1) + diff(mM) * hthrs.Value)) = 0;
+        tmask((data > 0) & (data < q)) = 0;
+        tmask((data < 0) & (data > -q)) = 0;
         set(h, 'AlphaData', hsldr.Value * tmask);
+
         if isfield(handles, 'tmpl')
             dataTmpl = ovrlTmpl(:, :, channel);
             mM = minmax(dataTmpl(:)');
@@ -578,19 +592,8 @@ function handles = directionMap(handles)
         data = ovrl(:, :, channel);
         set(h, 'CData', data);
 
-        mM = minmax(data(:)');
-        set(ax, 'CLim', mM);
-
-        if isfield(handles, 'tmpl')
-            dataTmpl = ovrlTmpl(:, :, channel);
-            set(hT, 'CData', dataTmpl);
-
-            % Same color scales
-            mMT = minmax(dataTmpl(:)');
-            mM = minmax([mM, mMT]);
-            set(ax, 'CLim', mM);
-            set(axT, 'CLim', mM);
-        end
+        % Set colormaps and scales
+        setCMapScale();
     end
 
     % Add button with callback to reset the results
@@ -610,29 +613,12 @@ function handles = directionMap(handles)
         data = ovrl(:, :, channel);
         set(h, 'CData', data);
 
-        mM = minmax(data(:)');
-        set(ax, 'CLim', mM);
-        set(h, 'AlphaData', mask);
+        % Set colormaps and scales
+        setCMapScale();
 
+        set(h, 'AlphaData', mask);
         if isfield(handles, 'tmpl')
-            dataTmpl = ovrlTmpl(:, :, channel);
-            mMT = minmax(dataTmpl(:)');
-            set(hT, 'CData', dataTmpl);
-            % Same scales
-            mM = minmax([mM, mMT]);
-            set(ax, 'CLim', mM);
-            set(axT, 'CLim', mM);
             set(hT, 'AlphaData', mask);
-        end
-        % Check for special scales
-        if strcmp(chnls{channel}, 'P�clet Num.')
-            mx = max(mM);
-            scale = [-mx, mx] + 1;
-            set(ax, 'CLim', scale);
-            if isfield(handles, 'tmpl')
-                colormap(axT, colorcet('D1'));
-                set(axT, 'CLim', scale);
-            end
         end
 
     end
@@ -672,28 +658,17 @@ function handles = directionMap(handles)
         'position', [0.3, 0.95, 0.1, 0.05], ...
         'callback', @colSaturation);
     function colSaturation(~, ~)
-        q = prctile(data(:), [satLevel, 100 - satLevel]);
-        set(ax, 'CLim', q);
+        data = ovrl(:, :, channel);
+        q = prctile(abs(data(:)), 100 - satLevel);
+        data(data > q) = q;
+        data(data < -q) = -q;
         if isfield(handles, 'tmpl')
-            qT = prctile(dataTmpl(:), [satLevel, 100 - satLevel]);
-
-            % Same scales
-            q = minmax([q, qT]);
-            set(ax, 'CLim', q);
-            set(axT, 'CLim', q);
-
-            % Check for special scales
-            if strcmp(chnls{channel}, 'P�clet Num.')
-                colormap(ax, colorcet('D1'));
-                q = max(q);
-                scale = [-q, q] + 1;
-                set(ax, 'CLim', scale);
-                if isfield(handles, 'tmpl')
-                    colormap(axT, colorcet('D1'));
-                    set(axT, 'CLim', scale);
-                end
-            end
+            dataTmpl = ovrlTmpl(:, :, channel);
+            qT = prctile(abs(dataTmpl(:)), 100 - satLevel);
+            dataTmpl(dataTmpl > qT) = qT;
+            dataTmpl(dataTmpl < -qT) = -qT;
         end
+        setCMapScale();
     end
 
     % Add entry box to specify color saturation level
