@@ -38,37 +38,30 @@ function handles = directionMap3d(handles)
     end
 
     % Switch based on the method
-    % Choices (defined in guide):
-    % 1 - 5 (2d)
-    % 6 - '3D_Difs-Adv.'
+    % 3D model choices (defined in guide):
+    % 5 - '3D_Difs-Adv.'
     switch method
-            % Simple contrast along time axis
-            % Nothing to do. This are the value calculated above.
-        case 1
-        case 2
-        case 3
-        case 4
-        case 5
             % 3D diffusion-advection model
-        case 6
-            % Evaluate the advection-diffusion model
-            coeff = modAdvecDiff3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
-
-            % Evaluate derived parameters
-            % Velocity magnitude
-            coeff = cat(4, coeff, sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2));
-
+        case 5
             % Specify parameters to display
             nc = {'Diff Coeff', ...
                       'Vx', ...
                       'Vy', ...
                       'Vz', ...
                   'Vmag'};
-            % 3D diffusion-advection-source model
-        case 7
-            % Evaluate the advection-diffusion-source model
-            coeff = modAdvecDiffSrc3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
 
+            % Evaluate the advection-diffusion model
+            coeff = modAdvecDiff3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
+
+            % Evaluate derived parameters
+            % Velocity magnitude
+            vmag = sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2);
+
+            % Concatenate the parameters
+            coeff = cat(4, coeff, vmag);
+
+            % 3D diffusion-advection-source model
+        case 6
             % Specify parameters to display
             nc = {'Diff Coeff', ...
                       'Vx', ...
@@ -77,15 +70,19 @@ function handles = directionMap3d(handles)
                       'Vmag', ...
                   'Source'};
 
+            % Evaluate the advection-diffusion-source model
+            coeff = modAdvecDiffSrc3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
+
             % Evaluate derived parameters
             % Velocity magnitude
             vmag = sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2);
 
-            % Build display array according to nc
+            % oncatenate the parameters
             coeff = cat(4, ...
                 coeff(:, :, :, 1:4), ...
                 vmag, ...
                 coeff(:, :, :, 5));
+
     end
 
     % Remove notification

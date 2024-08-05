@@ -17,7 +17,7 @@
 function handles = directionMap(handles)
     method = handles.direction.mapType;
     % Check if it is a 3d analysis
-    if method > 5
+    if method > 4
         try
             % Evaluate the 3d directional map
             handles = directionMap3d(handles);
@@ -137,7 +137,6 @@ function handles = directionMap(handles)
     % 2 - 'Anis. Difs'
     % 3 - 'Difs-Adv.'
     % 4 - 'Difs-Adv.+Src'
-    % 5 - 'Comp. Mods'
     switch method
             % Simple contrast along time axis
             % Nothing to do. This are the value calculated above.
@@ -202,7 +201,6 @@ function handles = directionMap(handles)
 
             % Advection-diffusion
         case 3
-
             % Define model results
             nc = {'Diff Coeff', ...
                       'Reluctance', ...
@@ -212,7 +210,6 @@ function handles = directionMap(handles)
                       'Vx', ...
                       'Vy', ...
                   'Resid Norm'};
-            snc = length(nc);
             chnls = [chnls, nc];
 
             % Evaluate advection-diffusion model on current stack
@@ -223,18 +220,15 @@ function handles = directionMap(handles)
                 useHood, hoodSiz, ...
                 useSmooth);
 
-            % Store data in overlays
-            ovrl = cat(3, ovrl, zeros([size(img), snc]));
-
-            % Adjust for central gradients (non need for the extra pixel at
-            % the edges)
-            cmM = cmM + [-1, 1];
-            rmM = rmM + [-1, 1];
+            % Evaluate derived parameters
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2) .^ 2 + coeff(:, :, 3) .^ 2);
             vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
             pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-            ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end - snc + 1:end) = cat(3, ...
+
+            % Add data to overlays
+            ovrl = cat(3, ...
+                ovrl, ...
                 coeff(:, :, 1), ...
                 relc, ...
                 pec, ...
@@ -254,16 +248,15 @@ function handles = directionMap(handles)
                     useHood, hoodSiz, ...
                     useSmooth);
 
-                % Store data in overlays
-                ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
-
-                % Adjust for central gradients (non need for the extra pixel at
-                % the edges)
+                % Evaluate derived parameters
                 relc = exp(-coeff(:, :, 1));
                 vmag = sqrt(coeff(:, :, 2) .^ 2 + coeff(:, :, 3) .^ 2);
                 vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
                 pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-                ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end - snc + 1:end) = cat(3, ...
+
+                % Add data to overlays
+                ovrlTmpl = cat(3, ...
+                    ovrlTmpl, ...
                     coeff(:, :, 1), ...
                     relc, ...
                     pec, ...
@@ -275,7 +268,6 @@ function handles = directionMap(handles)
 
             % Advection-diffusion + source (or sink)
         case 4
-
             % Define model results
             nc = {'Diff Coeff', ...
                       'Reluctance', ...
@@ -286,7 +278,6 @@ function handles = directionMap(handles)
                       'Vy', ...
                       'Source', ...
                   'Resid Norm'};
-            snc = length(nc);
             chnls = [chnls, nc];
 
             % Evaluate advection-diffusion-source model on current stack
@@ -297,18 +288,15 @@ function handles = directionMap(handles)
                 useHood, hoodSiz, ...
                 useSmooth);
 
-            % Store data in overlays
-            ovrl = cat(3, ovrl, zeros([size(img), snc]));
-
-            % Adjust for central gradients (non need for the extra pixel at
-            % the edges)
-            cmM = cmM + [-1, 1];
-            rmM = rmM + [-1, 1];
+            % Evaluate derived parameters
             relc = exp(-coeff(:, :, 1));
             vmag = sqrt(coeff(:, :, 2) .^ 2 + coeff(:, :, 3) .^ 2);
             vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
             pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-            ovrl(cmM(1):cmM(2), rmM(1):rmM(2), end - snc + 1:end) = cat(3, ...
+
+            % Add data to overlays
+            ovrl = cat(3, ...
+                ovrl, ...
                 coeff(:, :, 1), ...
                 relc, ...
                 pec, ...
@@ -328,16 +316,15 @@ function handles = directionMap(handles)
                     useHood, hoodSiz, ...
                     useSmooth);
 
-                % Store data in overlays
-                ovrlTmpl = cat(3, ovrlTmpl, zeros([size(img), snc]));
-
-                % Adjust for central gradients (non need for the extra pixel at
-                % the edges)
+                % Evaluate derived parameters
                 relc = exp(-coeff(:, :, 1));
                 vmag = sqrt(coeff(:, :, 2) .^ 2 + coeff(:, :, 3) .^ 2);
                 vdir = atan2d(coeff(:, :, 3), coeff(:, :, 2));
                 pec = (vmag ./ coeff(:, :, 1)) * ds_peclet;
-                ovrlTmpl(cmM(1):cmM(2), rmM(1):rmM(2), end - snc + 1:end) = cat(3, ...
+
+                % Add data to overlays
+                ovrlTmpl = cat(3, ...
+                    ovrlTmpl, ...
                     coeff(:, :, 1), ...
                     relc, ...
                     pec, ...
@@ -346,22 +333,6 @@ function handles = directionMap(handles)
                     coeff(:, :, 2:end), ...
                     resNorm);
             end
-
-            % Compare predominance of model
-        case 5
-
-            % Simpler approach:
-            % At each time, look at the neighboring pixels (NSEW) and figure
-            % out the direction of minimum variation and identify that as the
-            % maximum diffusion direction at next time step. (This assumes that
-            % we just have a diffusive process base entirely on the
-            % concentration of contrast agent).
-            % Repeat for every time slot and take the majority vote (mode) or
-            % the average (?) and associate complex versors to corresponding
-            % directions (and possibly 0 to noise) and plot the corresponsing
-            % phase as direction.
-        case 6
-
     end
 
     % Remove notification
@@ -372,17 +343,18 @@ function handles = directionMap(handles)
         end
     end
 
+    % If we are not showing the results, we are done
+    if ~handles.dirMap.show
+        return
+    end
+
+    %% Visualization
     % Store original results
     ovrlOrig = ovrl;
     handles.ovrl = ovrl;
     if isfield(handles, 'tmpl')
         ovrlTmplOrig = ovrlTmpl;
         handles.ovrlTmpl = ovrlTmpl;
-    end
-
-    % If we are not showing the results, we are done
-    if ~handles.dirMap.show
-        return
     end
 
     % Overlay on grayscale version of image
@@ -477,7 +449,7 @@ function handles = directionMap(handles)
                     colormap(axT, colorcet('C3', 'N', 256));
                 end
                 scale = [-180, 180];
-            case {'Vx', 'Vy', 'P�clet Num.', 'Source', 'Luminance', 'Michelson', 'C.Var.', 'Last-First'}
+            case {'Vx', 'Vy', 'P�clet Num.', 'Source', 'Last-First'}
                 colormap(ax, colorcet('D1', 'N', 256));
                 if isfield(handles, 'tmpl')
                     colormap(axT, colorcet('D1', 'N', 256));
