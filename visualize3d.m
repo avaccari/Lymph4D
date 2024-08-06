@@ -18,11 +18,12 @@ function visualize3d(nc, coeff, stk)
     imgZSlice = 1;
     imgChannel = 1;
     imgRange = [0, 1];
-    imgAValue = 1;
+    imgAValue = 1.0;
     smoothViz = 0;
     useBaseImg = 0;
     baseQValue = 0.5;
-
+    vol3dAValue = 0.0;
+    vol3dOAValue = 1.0;
 
     %% Setup figure and layout
     fig = uifigure();
@@ -32,18 +33,18 @@ function visualize3d(nc, coeff, stk)
 
     %% Main layout
     mainLayout = uigridlayout(fig);
-    mainLayout.ColumnWidth = {300, '1x'};
+    mainLayout.ColumnWidth = {'0.5x', '1x'};
     mainLayout.RowHeight = {'1x'};
 
-    %% Config-analysis layout
-    configAnalysisLayout = uigridlayout(mainLayout);
-    configAnalysisLayout.Layout.Row = 1;
-    configAnalysisLayout.Layout.Column = 1;
-    configAnalysisLayout.ColumnWidth = {'1x'};
-    configAnalysisLayout.RowHeight = {'1x','1x'};
-    
+    %% Config-3D layout
+    config3dLayout = uigridlayout(mainLayout);
+    config3dLayout.Layout.Row = 1;
+    config3dLayout.Layout.Column = 1;
+    config3dLayout.ColumnWidth = {'1x'};
+    config3dLayout.RowHeight = {'0.5x', '1x'};
+
     %% Configuration analysis layout
-    configLayout = uipanel(configAnalysisLayout);
+    configLayout = uipanel(config3dLayout);
     configLayout.Title = 'Configuration';
     configLayout.Layout.Row = 1;
     configLayout.Layout.Column = 1;
@@ -62,6 +63,7 @@ function visualize3d(nc, coeff, stk)
     function smoothCBUpdateImage(src, ~)
         smoothViz = src.Value;
         updateImage();
+        update3DVolume();
     end
 
     % Use base image to clean data
@@ -73,6 +75,7 @@ function visualize3d(nc, coeff, stk)
     function useBaseCBUpdateImage(src, ~)
         useBaseImg = src.Value;
         updateImage();
+        update3DVolume();
     end
 
     % Specify quantile to clean data
@@ -87,13 +90,54 @@ function visualize3d(nc, coeff, stk)
         updateImage();
     end
 
-    %% Analysis layout
-    analysisconfigLayout = uipanel(configAnalysisLayout);
-    analysisconfigLayout.Title = 'Analysis';
-    analysisconfigLayout.Layout.Row = 2;
-    analysisconfigLayout.Layout.Column = 1;
+    %% 3D layout
+    grid3d = uigridlayout(config3dLayout);
+    grid3d.ColumnWidth = {'1x'};
+    grid3d.RowHeight = {'1x', 40, 40};
 
-    
+    % 3D volume layout
+    layout3D = uipanel(grid3d);
+    layout3D.Title = '3D';
+    layout3D.Layout.Row = 1;
+    layout3D.Layout.Column = 1;
+
+    % Add image
+    v3dAx = viewer3d(Parent = layout3D);
+    v3dAx.ClippingPlanes = [0, 0, 1, -imgZSlice];
+    v3dAx.ClippingInteractions = 'none';
+    sz = size(stk, 1:3) / 2;
+    v3dAx.CameraPosition = [sz(1), sz(2), -1];
+    v3dAx.LightPosition = [sz(1), sz(2), -1];
+    v3dAx.CameraUpVector = [0, -1, 0];
+    vol3dH = volshow(zeros(size(coeff, 1:3)), Parent = v3dAx);
+    vol3dH.RenderingStyle = 'GradientOpacity';
+
+    % Update 3D volume with current values
+    update3DVolume();
+
+    % Add the base image alpha slider
+    vol3dBaseAlphaSlider = uislider(grid3d);
+    vol3dBaseAlphaSlider.Limits = [0, 100];
+    vol3dBaseAlphaSlider.Value = 0;
+    vol3dBaseAlphaSlider.Layout.Row = 2;
+    vol3dBaseAlphaSlider.Layout.Column = 1;
+    vol3dBaseAlphaSlider.ValueChangedFcn = @vol3dBaseAlphaSliderUpdateImage;
+    function vol3dBaseAlphaSliderUpdateImage(src, ~)
+        vol3dAValue = src.Value / 100;
+        update3DVolume();
+    end
+
+    % Add the overlay alpha slider
+    vol3dOverlayAlphaSlider = uislider(grid3d);
+    vol3dOverlayAlphaSlider.Limits = [0, 100];
+    vol3dOverlayAlphaSlider.Value = 100;
+    vol3dOverlayAlphaSlider.Layout.Row = 3;
+    vol3dOverlayAlphaSlider.Layout.Column = 1;
+    vol3dOverlayAlphaSlider.ValueChangedFcn = @vol3dOverlayAlphaSliderUpdateImage;
+    function vol3dOverlayAlphaSliderUpdateImage(src, ~)
+        vol3dOAValue = src.Value / 100;
+        update3DVolume();
+    end
 
     %% Image layout
     imageLayout = uigridlayout(mainLayout);
@@ -101,7 +145,6 @@ function visualize3d(nc, coeff, stk)
     imageLayout.RowHeight = {35, '1x', 30};
     imageLayout.Layout.Row = 1;
     imageLayout.Layout.Column = 2;
-
 
     % Add base image
     imgBAx = uiaxes(imageLayout);
@@ -128,7 +171,7 @@ function visualize3d(nc, coeff, stk)
 
     % Update images with current values
     updateImage();
-    
+
     % Add the coefficient selection drop down
     cDDown = uidropdown(imageLayout);
     cDDown.Items = nc;
@@ -138,6 +181,7 @@ function visualize3d(nc, coeff, stk)
     function cSliderUpdateImage(src, ~)
         imgChannel = src.ValueIndex;
         updateImage();
+        update3DVolume();
     end
 
     % Add the z slider
@@ -149,10 +193,19 @@ function visualize3d(nc, coeff, stk)
     zSlider.MinorTicks = [];
     zSlider.Layout.Row = 2;
     zSlider.Layout.Column = 1;
-    zSlider.ValueChangedFcn = @zSliderUpdateImage;
-    function zSliderUpdateImage(src, ~)
-        imgZSlice = round(src.Value);
-        updateImage();
+    zSlider.ValueChangingFcn = @zSliderUpdateImage;
+    zSlider.ValueChangedFcn = @zSliderUpdate;
+    zSlider.UserData.PreviousValue = imgZSlice;
+    function zSliderUpdateImage(src, event)
+        imgZSlice = round(event.Value);
+        if imgZSlice ~= src.UserData.PreviousValue
+            src.UserData.PreviousValue = imgZSlice;
+            updateImage();
+            update3DVolume();
+        end
+    end
+    function zSliderUpdate(src, ~)
+        src.Value = imgZSlice;
     end
 
     % Add quantile clipping slider
@@ -165,6 +218,7 @@ function visualize3d(nc, coeff, stk)
     function qSliderUpdateImage(src, ~)
         imgRange = src.Value / 100;
         updateImage();
+        update3DVolume();
     end
 
     % Add the alpha slider
@@ -178,13 +232,11 @@ function visualize3d(nc, coeff, stk)
     function aSliderUpdateImage(src, ~)
         imgAValue = src.Value / 100;
         updateImage();
+        update3DVolume();
     end
 
-
-
-
-    % Update callback
-    function updateImage()        
+    %% Update image callback
+    function updateImage()
         % Update base image
         dataB = mean(stk, 4);
         qb = quantile(dataB(:), [0.05, 0.95, baseQValue]);
@@ -235,7 +287,62 @@ function visualize3d(nc, coeff, stk)
         end
 
         imgH.AlphaData = alpha;
+    end
 
+    %% Update 3D volume callback
+    function update3DVolume()
+        % Update base image
+        dataB = mean(stk, 4);
+        qb = quantile(dataB(:), [0.1, 0.95, baseQValue]);
+        dataB(dataB < qb(1)) = qb(1);
+        dataB(dataB > qb(2)) = qb(2);
+        vol3dH.Data = dataB;
+        colormap(vol3dH, colorcet('L1', 'N', 256));
+
+        % Update 3D volume
+        data = coeff(:, :, :, imgChannel);
+        switch nc{imgChannel}
+            case {'Vx', 'Vy', 'Vz', 'Source'}
+                % Maintain centered data while clipping
+                q = quantile(abs(data(:)), [imgRange(1), imgRange(2)]);
+                data(data < -q(2)) = -q(2);
+                data((-q(1) < data) & (data < 0)) = -q(1);
+                data((0 < data) & (data < q(1))) = q(1);
+                data(data > q(2)) = q(2);
+            otherwise
+                q = quantile(data(:), [imgRange(1), imgRange(2)]);
+                data(data < q(1)) = q(1);
+                data(data > q(2)) = q(2);
+        end
+
+        % Smooth the volume if required
+        if smoothViz == 1
+            data = smooth3(data, 'gaussian', [3, 3, 3]);
+        end
+
+        % Update 3D volume
+        vol3dH.OverlayData = data;
+        switch nc{imgChannel}
+            case {'Vx', 'Vy', 'Vz', 'Source'}
+                % Center data around zero for better visualization
+                % xtrema = max(abs(data(:)));
+                % vol3dH.DataLimits = [-xtrema, xtrema];
+                % clim(v3dAx, [-xtrema, xtrema]);
+                vol3dH.OverlayColormap = colorcet('D1', 'N', 256);
+            otherwise
+                % clim(v3dAx, "auto");
+                vol3dH.DataLimitsMode = 'Auto';
+                vol3dH.OverlayColormap = colorcet('L20', 'N', 256);
+        end
+
+        % Update base alpha value
+        vol3dH.GradientOpacityValue = vol3dAValue;
+
+        % Update overlay alpha value
+        vol3dH.OverlayAlphamap = vol3dOAValue;
+
+        % Update clipping plane
+        v3dAx.ClippingPlanes = [0, 0, 1, -imgZSlice];
     end
 end
 
@@ -247,6 +354,6 @@ end
 % nc = {'Diff Coeff', ...
 %           'Vx', ...
 %           'Vy', ...
-%           'Vz'};
+%       'Vz'};
 % 
 % visualize3da(nc, coeff, stk);
