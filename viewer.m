@@ -13,2037 +13,1922 @@
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
-
-
-
-
 %% Viewer instantiation and closing ---------------------------------------
 
 function varargout = viewer(varargin)
-% VIEWER MATLAB code for viewer.fig
-%      VIEWER, by itself, creates a new VIEWER or raises the existing
-%      singleton*.
-%
-%      H = VIEWER returns the handle to a new VIEWER or the handle to
-%      the existing singleton*.
-%
-%      VIEWER('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in VIEWER.M with the given input arguments.
-%
-%      VIEWER('Property','Value',...) creates a new VIEWER or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before viewer_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to viewer_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
+    % VIEWER MATLAB code for viewer.fig
+    %      VIEWER, by itself, creates a new VIEWER or raises the existing
+    %      singleton*.
+    %
+    %      H = VIEWER returns the handle to a new VIEWER or the handle to
+    %      the existing singleton*.
+    %
+    %      VIEWER('CALLBACK',hObject,eventData,handles,...) calls the local
+    %      function named CALLBACK in VIEWER.M with the given input arguments.
+    %
+    %      VIEWER('Property','Value',...) creates a new VIEWER or raises the
+    %      existing singleton*.  Starting from the left, property value pairs are
+    %      applied to the GUI before viewer_OpeningFcn gets called.  An
+    %      unrecognized property name or invalid value makes property application
+    %      stop.  All inputs are passed to viewer_OpeningFcn via varargin.
+    %
+    %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
+    %      instance to run (singleton)".
+    %
+    % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help viewer
+    % Edit the above text to modify the response to help viewer
 
-% Last Modified by GUIDE v2.5 06-Oct-2023 17:57:09
+    % Last Modified by GUIDE v2.5 06-Oct-2023 17:57:09
 
-% Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
-    'gui_Singleton',  gui_Singleton, ...
-    'gui_OpeningFcn', @viewer_OpeningFcn, ...
-    'gui_OutputFcn',  @viewer_OutputFcn, ...
-    'gui_LayoutFcn',  [] , ...
-    'gui_Callback',   []);
-if nargin && ischar(varargin{1})
-    gui_State.gui_Callback = str2func(varargin{1});
+    % Begin initialization code - DO NOT EDIT
+    gui_Singleton = 1;
+    gui_State = struct('gui_Name', mfilename, ...
+        'gui_Singleton', gui_Singleton, ...
+        'gui_OpeningFcn', @viewer_OpeningFcn, ...
+        'gui_OutputFcn', @viewer_OutputFcn, ...
+        'gui_LayoutFcn', [], ...
+        'gui_Callback', []);
+    if nargin && ischar(varargin{1})
+        gui_State.gui_Callback = str2func(varargin{1});
+    end
+
+    if nargout
+        [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+    else
+        gui_mainfcn(gui_State, varargin{:});
+    end
+    % End initialization code - DO NOT EDIT
 end
-
-if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
-    gui_mainfcn(gui_State, varargin{:});
-end
-% End initialization code - DO NOT EDIT
-
 
 % --- Executes just before viewer is made visible.
 function viewer_OpeningFcn(hObject, ~, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to viewer (see VARARGIN)
+    % This function has no output args, see OutputFcn.
+    % hObject    handle to figure
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    % varargin   command line arguments to viewer (see VARARGIN)
 
-% Choose default command line output for viewer
-handles.output = hObject;
+    % Choose default command line output for viewer
+    handles.output = hObject;
 
-% Configure one-time-only globals
-handles = configOneTime(handles);
+    % Configure one-time-only globals
+    handles = configOneTime(handles);
 
-% Additional GUI elements
-handles = addGuiElements(handles);
+    % Additional GUI elements
+    handles = addGuiElements(handles);
 
-% Check if data was passed
-if nargin > 3
-    handles.stackOrig = varargin{1};
-    
-    % Configure the stack for visualization
-    handles = configStack(handles);
+    % Check if data was passed
+    if nargin > 3
+        handles.stackOrig = varargin{1};
+
+        % Configure the stack for visualization
+        handles = configStack(handles);
+    end
+
+    % Update handles structure
+    guidata(hObject, handles);
+
+    % UIWAIT makes viewer wait for user response (see UIRESUME)
+    % uiwait(handles.mainGui);
 end
-
-% Update handles structure
-guidata(hObject, handles);
-
-% UIWAIT makes viewer wait for user response (see UIRESUME)
-% uiwait(handles.mainGui);
-
 
 % --- Outputs from this function are returned to the command line.
 function varargout = viewer_OutputFcn(~, ~, handles)
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % varargout  cell array for returning output args (see VARARGOUT);
+    % hObject    handle to figure
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
-varargout{1} = handles.output;
-
+    % Get default command line output from handles structure
+    varargout{1} = handles.output;
+end
 
 % --- Called when the window is closed
 function viewer_ClosingFcn(hObject, ~, ~)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-delete(hObject);
-
-
-
-
-
-
-
-
-
-
-
+    % hObject    handle to edit1 (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    delete(hObject);
+end
 
 %% Viewer callbacks -------------------------------------------------------
 
 % --- Executes on button press in selectExpBtn.
 function selectExpBtn_Callback(hObject, ~, ~)
-% hObject    handle to selectExpBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to selectExpBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Let user select the experiment (directory)
-try
-    load(fullfile(handles.storePath, handles.lastExpFile), 'path');
-catch
+    % Let user select the experiment (directory)
+    try
+        load(fullfile(handles.storePath, handles.lastExpFile), 'path');
+    catch
+    end
+
+    if exist('path', 'var')
+        path = uigetdir(path);
+    else
+        path = uigetdir();
+    end
+    if path == 0
+        return
+    end
+
+    % Open and read the stack
+    try
+        handles = openExperiment(handles, path);
+    catch ME
+        msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
+        return
+    end
+
+    % Store path and experiment info for fast access
+    file = fullfile(handles.storePath, handles.lastExpFile);
+    if exist(file, 'file')
+        save(file, 'path', '-append');
+    else
+        save(file, 'path');
+    end
+
+    % Configure the stack for visualization
+    handles = configStack(handles);
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
 end
-
-if exist('path', 'var')
-    path = uigetdir(path);
-else
-    path = uigetdir();
-end
-if path == 0
-    return
-end
-
-% Open and read the stack
-try
-    handles = openExperiment(handles, path);
-catch ME
-    msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
-    return
-end
-
-% Store path and experiment info for fast access
-file = fullfile(handles.storePath, handles.lastExpFile);
-if exist(file, 'file')
-    save(file, 'path', '-append');
-else
-    save(file, 'path');
-end
-
-% Configure the stack for visualization
-handles = configStack(handles);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
 
 % --- Executes on button press in loadLatestBtn.
 function loadLatestBtn_Callback(hObject, ~, ~)
-% hObject    handle to loadLatestBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to loadLatestBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-try
-    load(fullfile(handles.storePath, handles.lastExpFile), 'path');
-catch
-    msgbox('Cannot locate file containing latest experiment information');
-    return
+    try
+        load(fullfile(handles.storePath, handles.lastExpFile), 'path');
+    catch
+        msgbox('Cannot locate file containing latest experiment information');
+        return
+    end
+
+    % Open and read the stack
+    handles = openExperiment(handles, path);
+
+    % Configure the stack for visualization
+    handles = configStack(handles);
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
 end
-
-% Open and read the stack
-handles = openExperiment(handles, path);
-
-% Configure the stack for visualization
-handles = configStack(handles);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
-
 
 % --- Executes on button press in loadVarBtn.
 function loadVarBtn_Callback(hObject, ~, ~)
-% hObject    handle to loadVarBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to loadVarBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% If expInfo exists, resetBtn it
-if isfield(handles, 'expInfo')
-    handles = rmfield(handles, 'expInfo');
+    % If expInfo exists, resetBtn it
+    if isfield(handles, 'expInfo')
+        handles = rmfield(handles, 'expInfo');
+    end
+
+    % Load the list of variables in the 'base' workspace
+    list = evalin('base', 'whos');
+
+    % Select only the variable of the right size
+    list = list(cellfun('length', {list.size}) == 4);
+
+    % Check if there is anything left
+    if isempty(list) == 1
+        msgbox('There are no 4D variables in the workspace');
+        return
+    end
+
+    % Ask user to pick the variable
+    [s, v] = listdlg('PromptString', 'Select a variable (x, y, z, t):', ...
+        'SelectionMode', 'single', ...
+        'ListString', {list.name});
+
+    % If error, bail
+    if v == 0
+        msgbox('There was an error during the selection process.');
+        return
+    end
+
+    % Load the variable and open it
+    handles.stackOrig = evalin('base', list(s).name);
+
+    % Set the name of the experiment
+    handles.expInfo.expName = list(s).name;
+
+    % Configure the stack for visualization
+    handles = configStack(handles);
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
 end
-
-% Load the list of variables in the 'base' workspace
-list = evalin('base', 'whos');
-
-% Select only the variable of the right size
-list = list(cellfun('length', {list.size}) == 4);
-
-% Check if there is anything left
-if isempty(list) == 1
-    msgbox('There are no 4D variables in the workspace');
-    return
-end
-
-% Ask user to pick the variable
-[s, v] = listdlg('PromptString', 'Select a variable (x, y, z, t):', ...
-    'SelectionMode', 'single', ...
-    'ListString', {list.name});
-
-% If error, bail
-if v == 0
-    msgbox('There was an error during the selection process.');
-    return
-end
-
-% Load the variable and open it
-handles.stackOrig = evalin('base', list(s).name);
-
-% Set the name of the experiment
-handles.expInfo.expName = list(s).name;
-
-% Configure the stack for visualization
-handles = configStack(handles);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
 
 % --- Executes on button press in loadFileBtn.
 function loadFileBtn_Callback(hObject, ~, ~)
-% hObject    handle to loadFileBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to loadFileBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% If expInfo exists, resetBtn it
-if isfield(handles, 'expInfo')
-    handles = rmfield(handles, 'expInfo');
-end
+    % If expInfo exists, resetBtn it
+    if isfield(handles, 'expInfo')
+        handles = rmfield(handles, 'expInfo');
+    end
 
-% Let user select the experiment (directory)
-[fName, pName] = uigetfile(fullfile(handles.storePath, '*.mat'), ...
+    % Let user select the experiment (directory)
+    [fName, pName] = uigetfile(fullfile(handles.storePath, '*.mat'), ...
     'Select a file containing a 4D stack (x, y, z, t)');
-if fName == 0
-    return
-end
+    if fName == 0
+        return
+    end
 
-% Load stack
-stack = loadStackFromFile(pName, fName);
-
-% If stack was not available
-if stack == 0
-    msgbox('There are not 4D variables in the file');
-    return
-end
-
-% If it was
-handles.stackOrig = stack;
-
-% Set the name of the experiment (assumes an extension)
-name = regexp(fName, "(.*)\.", "tokens");
-handles.expInfo.expName = name{1}{1};
-
-% Configure the stack for visualization
-handles = configStack(handles);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
-
-
-
-
-% --- Executes on button press in batchProcessing.
-function batchProcessing_Callback(hObject, ~, ~)
-% hObject    handle to batchProcessing (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-pName = uigetdir(handles.storePath, "Choose folder with batch data");
-files = dir(fullfile(pName, '*.mat'));
-
-% Notify user that saving is ongoing
-h = msgbox({'Processing files in'; pName});
-
-% Run the analysis on every file
-for n = 1:length(files)
-    fName = files(n).name;
-    
     % Load stack
     stack = loadStackFromFile(pName, fName);
-    
+
     % If stack was not available
     if stack == 0
         msgbox('There are not 4D variables in the file');
         return
     end
-    
-    % If it was store in stackImg (usually it gets stored in stackOrig)
-    handles.stackImg = stack;
-    
-    % Don't show the directional map
-    handles.dirMap.show = false;
-    handles.dirMap.quiet = true;
-    
-    % Try to run the analysis
+
+    % If it was
+    handles.stackOrig = stack;
+
+    % Set the name of the experiment (assumes an extension)
+    name = regexp(fName, "(.*)\.", "tokens");
+    handles.expInfo.expName = name{1}{1};
+
+    % Configure the stack for visualization
+    handles = configStack(handles);
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in batchProcessing.
+function batchProcessing_Callback(hObject, ~, ~)
+    % hObject    handle to batchProcessing (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+    pName = uigetdir(handles.storePath, "Choose folder with batch data");
+    files = dir(fullfile(pName, '*.mat'));
+
+    % Notify user that saving is ongoing
+    h = msgbox({'Processing files in'; pName});
+
+    % Run the analysis on every file
+    for n = 1:length(files)
+        fName = files(n).name;
+
+        % Load stack
+        stack = loadStackFromFile(pName, fName);
+
+        % If stack was not available
+        if stack == 0
+            msgbox('There are not 4D variables in the file');
+            return
+        end
+
+        % If it was store in stackImg (usually it gets stored in stackOrig)
+        handles.stackImg = stack;
+
+        % Don't show the directional map
+        handles.dirMap.show = false;
+        handles.dirMap.quiet = true;
+
+        % Try to run the analysis
+        try
+            handles = directionMap(handles);
+        catch ME
+            msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
+            return
+        end
+
+        % Define the file names
+        [~, file, ext] = fileparts(fName);
+        fName = strcat(file, '_ovrl', ext);
+        if isfield(handles, 'tmpl')
+            fNameTmpl = strcat(file, '_ovrlTmpl', ext);
+        end
+
+        % If the file exists, delete it
+        if exist(fullfile(pName, fName), 'file') == 2
+            delete(fullfile(pName, fName));
+        end
+        if isfield(handles, 'tmpl') & exist(fullfile(pName, fNameTmpl), 'file') == 2
+            delete(fullfile(pName, fNameTmpl));
+        end
+
+        % Save ovrls to file
+        ovrl = handles.ovrl;
+        save(fullfile(pName, fName), 'ovrl');
+        if isfield(handles, 'tmpl')
+            ovrlTmpl = handles.ovrlTmpl;
+            save(fullfile(pName, fNameTmpl), 'ovrlTmpl');
+        end
+
+    end
+
+    % Remove notification
+    try
+        delete(h);
+    catch
+    end
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in dicomInfoBtn.
+function dicomInfoBtn_Callback(hObject, ~, ~)
+    % hObject    handle to dicomInfoBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = showImageInfo(handles);
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on slider movement.
+function sliceSlider_Callback(hObject, ~, ~)
+    % hObject    handle to sliceSlider (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hints: get(hObject,'Value') returns position of slider
+    %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+    handles = guidata(hObject);
+
+    % Update image when user use the slider
+    try
+        dx = 1.0 / (handles.sliceNum - 1);
+        idx = 1 + floor(get(hObject, 'Value') / dx);
+        if idx ~= handles.sliceIdx
+            handles.sliceIdx = idx;
+
+            % Update the axes
+            set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+            if isfield(handles, 'tmpl')
+                try
+                    set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+                catch
+                end
+            end
+
+            % Update array indexing
+            handles = updateIdx(handles);
+
+            % Update display
+            handles = updateGui(handles);
+
+            guidata(hObject, handles);
+        end
+    catch
+    end
+end
+
+% --- Executes during object creation, after setting all properties.
+function sliceSlider_CreateFcn(hObject, ~, ~)
+    % hObject    handle to sliceSlider (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
+
+    % Hint: slider controls usually have a light gray background.
+    if isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', [.9 .9 .9]);
+    end
+
+    handles = guidata(hObject);
+
+    % Create listener for real time update with slider
+    handles.sliceSliderListener = addlistener(hObject, ...
+        'ContinuousValueChange', ...
+        @(hObject, eventdata) sliceSlider_Callback(hObject, eventdata));
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on slider movement.
+function stackSlider_Callback(hObject, ~, ~)
+    % hObject    handle to stackSlider (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hints: get(hObject,'Value') returns position of slider
+    %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+    handles = guidata(hObject);
+
+    % Update image when user use the slider
+    try
+        dx = 1.0 / (handles.stackNum - 1);
+        idx = 1 + floor(get(hObject, 'Value') / dx);
+        if idx ~= handles.stackIdx
+            handles.stackIdx = idx;
+
+            % Update the axes
+            set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+            if isfield(handles, 'tmpl')
+                try
+                    set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+                catch
+                end
+            end
+
+            % Update array indexing
+            handles = updateIdx(handles);
+
+            % Update display
+            handles = updateGui(handles);
+
+            guidata(hObject, handles);
+        end
+    catch
+    end
+end
+
+% --- Executes during object creation, after setting all properties.
+function stackSlider_CreateFcn(hObject, ~, ~)
+    % hObject    handle to stackSlider (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
+
+    % Hint: slider controls usually have a light gray background.
+    if isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', [.9 .9 .9]);
+    end
+
+    handles = guidata(hObject);
+
+    % Create listener for real time update with slider
+    handles.stackSliderListener = addlistener(hObject, ...
+        'ContinuousValueChange', ...
+        @(hObject, eventdata) stackSlider_Callback(hObject, eventdata));
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in resetBtn.
+function resetBtn_Callback(hObject, ~, ~)
+    % hObject    handle to resetBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = configStack(handles);
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in selPointRbtn.
+function selPointRbtn_Callback(hObject, ~, ~)
+    % hObject    handle to selPointRbtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hint: get(hObject,'Value') returns toggle state of selPointRbtn
+    handles = guidata(hObject);
+
+    handles.selection.mode = 'point';
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in selLineRbtn.
+function selLineRbtn_Callback(hObject, ~, ~)
+    % hObject    handle to selLineRbtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hint: get(hObject,'Value') returns toggle state of selLineRbtn
+    handles = guidata(hObject);
+
+    handles.selection.mode = 'line';
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in selPolyRbtn.
+function selPolyRbtn_Callback(hObject, ~, ~)
+    % hObject    handle to selPolyRbtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hint: get(hObject,'Value') returns toggle state of selPolyRbtn
+    handles = guidata(hObject);
+
+    handles.selection.mode = 'poly';
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in setFiltOnChk.
+function setFiltOnChk_Callback(hObject, ~, ~)
+    % hObject    handle to setFiltOnChk (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hint: get(hObject,'Value') returns toggle state of setFiltOnChk
+    handles = guidata(hObject);
+
+    handles.localMean.use = get(hObject, 'Value');
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+
+    % Redraw the graph with the new parameters
+    if handles.drawing.active
+        lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
+    end
+end
+
+% --- Executes on selection change in setFiltTypPop.
+function setFiltTypPop_Callback(hObject, ~, ~)
+    % hObject    handle to setFiltTypPop (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hints: contents = cellstr(get(hObject,'String')) returns setFiltTypPop contents as cell array
+    %        contents{get(hObject,'Value')} returns selected item from setFiltTypPop
+    handles = guidata(hObject);
+
+    % Choices (defined in guide):
+    % 1 - 'Disk (radius)'
+    % 2 - 'Gaussian (sigma)'
+    handles.localMean.type = get(hObject, 'Value');
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+
+    % Redraw the graph with the new parameters
+    if handles.drawing.active
+        lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
+    end
+end
+
+% --- Executes during object creation, after setting all properties.
+function setFiltTypPop_CreateFcn(hObject, ~, ~)
+    % hObject    handle to setFiltTypPop (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
+
+    % Hint: popupmenu controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
+end
+
+function setFiltSizEd_Callback(hObject, ~, ~)
+    % hObject    handle to setFiltSizEd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+
+    % Hints: get(hObject,'String') returns contents of setFiltSizEd as text
+    %        str2double(get(hObject,'String')) returns contents of setFiltSizEd as a double
+    handles = guidata(hObject);
+
+    handles.localMean.size = str2double(get(hObject, 'String'));
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+
+    % Redraw the graph with the new parameters
+    if handles.drawing.active
+        lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
+    end
+end
+
+% --- Executes during object creation, after setting all properties.
+function setFiltSizEd_CreateFcn(hObject, ~, ~)
+    % hObject    handle to setFiltSizEd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
+
+    % Hint: edit controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
+end
+
+% --- Executes on button press in lineSaveBtn.
+function lineSaveBtn_Callback(hObject, ~, ~)
+    % hObject    handle to lineSaveBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = analysisTmpls(handles, 'line', 'save');
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in lineLoadBtn.
+function lineLoadBtn_Callback(hObject, ~, ~)
+    % hObject    handle to lineLoadBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = analysisTmpls(handles, 'line', 'load');
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in lineDelBtn.
+function lineDelBtn_Callback(hObject, ~, ~)
+    % hObject    handle to lineDelBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = analysisTmpls(handles, 'line', 'delete');
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in polySaveBtn.
+function polySaveBtn_Callback(hObject, ~, ~)
+    % hObject    handle to polySaveBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = analysisTmpls(handles, 'poly', 'save');
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in polyLoadBtn.
+function polyLoadBtn_Callback(hObject, ~, ~)
+    % hObject    handle to polyLoadBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = analysisTmpls(handles, 'poly', 'load');
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in polyDelBtn.
+function polyDelBtn_Callback(hObject, ~, ~)
+    % hObject    handle to polyDelBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    handles = analysisTmpls(handles, 'poly', 'delete');
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in dirMapBtn.
+function dirMapBtn_Callback(hObject, ~, ~)
+    % hObject    handle to dirMapBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    % Show the directional map
+    handles.dirMap.show = true;
+    handles.dirMap.quiet = false;
+
     try
         handles = directionMap(handles);
     catch ME
         msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
         return
     end
-    
-    % Define the file names
-    [~, file, ext] = fileparts(fName);
-    fName = strcat(file, '_ovrl', ext);
-    if isfield(handles, 'tmpl')
-        fNameTmpl = strcat(file, '_ovrlTmpl', ext);
-    end
-    
-    % If the file exists, delete it
-    if exist(fullfile(pName, fName), 'file') == 2
-        delete(fullfile(pName, fName));
-    end
-    if isfield(handles, 'tmpl') & exist(fullfile(pName, fNameTmpl), 'file') == 2
-        delete(fullfile(pName, fNameTmpl));
-    end
-    
-    % Save ovrls to file
-    ovrl = handles.ovrl;
-    save(fullfile(pName, fName), 'ovrl');
-    if isfield(handles, 'tmpl')
-        ovrlTmpl = handles.ovrlTmpl;
-        save(fullfile(pName, fNameTmpl), 'ovrlTmpl');
-    end
-    
+
+    guidata(hObject, handles);
 end
-
-% Remove notification
-try
-    delete(h);
-catch
-end
-
-guidata(hObject, handles);
-
-
-
-
-% --- Executes on button press in dicomInfoBtn.
-function dicomInfoBtn_Callback(hObject, ~, ~)
-% hObject    handle to dicomInfoBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = showImageInfo(handles);
-
-guidata(hObject, handles);
-
-
-
-
-
-% --- Executes on slider movement.
-function sliceSlider_Callback(hObject, ~, ~)
-% hObject    handle to sliceSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-handles = guidata(hObject);
-
-% Update image when user use the slider
-try
-    dx = 1.0 / (handles.sliceNum - 1);
-    idx = 1 + floor(get(hObject, 'Value') / dx);
-    if idx ~= handles.sliceIdx
-        handles.sliceIdx = idx;
-        
-        % Update the axes
-        set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-        if isfield(handles, 'tmpl')
-            try
-                set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
-            catch
-            end
-        end
-        
-        % Update array indexing
-        handles = updateIdx(handles);
-        
-        % Update display
-        handles = updateGui(handles);
-        
-        guidata(hObject, handles);
-    end
-catch
-end
-
-% --- Executes during object creation, after setting all properties.
-function sliceSlider_CreateFcn(hObject, ~, ~)
-% hObject    handle to sliceSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-handles = guidata(hObject);
-
-% Create listener for real time update with slider
-handles.sliceSliderListener = addlistener(hObject, ...
-    'ContinuousValueChange', ...
-    @(hObject, eventdata) sliceSlider_Callback(hObject, eventdata));
-
-guidata(hObject, handles);
-
-
-% --- Executes on slider movement.
-function stackSlider_Callback(hObject, ~, ~)
-% hObject    handle to stackSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-handles = guidata(hObject);
-
-% Update image when user use the slider
-try
-    dx = 1.0 / (handles.stackNum - 1);
-    idx = 1 + floor(get(hObject, 'Value') / dx);
-    if idx ~= handles.stackIdx
-        handles.stackIdx = idx;
-        
-        % Update the axes
-        set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-        if isfield(handles, 'tmpl')
-            try
-                set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
-            catch
-            end
-        end
-        
-        % Update array indexing
-        handles = updateIdx(handles);
-        
-        % Update display
-        handles = updateGui(handles);
-        
-        guidata(hObject, handles);
-    end
-catch
-end
-
-% --- Executes during object creation, after setting all properties.
-function stackSlider_CreateFcn(hObject, ~, ~)
-% hObject    handle to stackSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-handles = guidata(hObject);
-
-% Create listener for real time update with slider
-handles.stackSliderListener = addlistener(hObject, ...
-    'ContinuousValueChange', ...
-    @(hObject, eventdata) stackSlider_Callback(hObject, eventdata));
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in resetBtn.
-function resetBtn_Callback(hObject, ~, ~)
-% hObject    handle to resetBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = configStack(handles);
-
-guidata(hObject, handles);
-
-
-
-
-% --- Executes on button press in selPointRbtn.
-function selPointRbtn_Callback(hObject, ~, ~)
-% hObject    handle to selPointRbtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of selPointRbtn
-handles = guidata(hObject);
-
-handles.selection.mode = 'point';
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in selLineRbtn.
-function selLineRbtn_Callback(hObject, ~, ~)
-% hObject    handle to selLineRbtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of selLineRbtn
-handles = guidata(hObject);
-
-handles.selection.mode = 'line';
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in selPolyRbtn.
-function selPolyRbtn_Callback(hObject, ~, ~)
-% hObject    handle to selPolyRbtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of selPolyRbtn
-handles = guidata(hObject);
-
-handles.selection.mode = 'poly';
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in setFiltOnChk.
-function setFiltOnChk_Callback(hObject, ~, ~)
-% hObject    handle to setFiltOnChk (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of setFiltOnChk
-handles = guidata(hObject);
-
-handles.localMean.use = get(hObject, 'Value');
-
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-% Redraw the graph with the new parameters
-if handles.drawing.active
-    lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
-end
-
-
-
-
-
-% --- Executes on selection change in setFiltTypPop.
-function setFiltTypPop_Callback(hObject, ~, ~)
-% hObject    handle to setFiltTypPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns setFiltTypPop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from setFiltTypPop
-handles = guidata(hObject);
-
-% Choices (defined in guide):
-% 1 - 'Disk (radius)'
-% 2 - 'Gaussian (sigma)'
-handles.localMean.type = get(hObject, 'Value');
-
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-% Redraw the graph with the new parameters
-if handles.drawing.active
-    lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
-end
-
-
-
-
-% --- Executes during object creation, after setting all properties.
-function setFiltTypPop_CreateFcn(hObject, ~, ~)
-% hObject    handle to setFiltTypPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function setFiltSizEd_Callback(hObject, ~, ~)
-% hObject    handle to setFiltSizEd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of setFiltSizEd as text
-%        str2double(get(hObject,'String')) returns contents of setFiltSizEd as a double
-handles = guidata(hObject);
-
-handles.localMean.size = str2double(get(hObject, 'String'));
-
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-% Redraw the graph with the new parameters
-if handles.drawing.active
-    lineAnalyze(handles.drawing.line.getPosition, handles.mainGui);
-end
-
-
-
-
-
-% --- Executes during object creation, after setting all properties.
-function setFiltSizEd_CreateFcn(hObject, ~, ~)
-% hObject    handle to setFiltSizEd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-% --- Executes on button press in lineSaveBtn.
-function lineSaveBtn_Callback(hObject, ~, ~)
-% hObject    handle to lineSaveBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = analysisTmpls(handles, 'line', 'save');
-
-guidata(hObject, handles);
-
-
-
-% --- Executes on button press in lineLoadBtn.
-function lineLoadBtn_Callback(hObject, ~, ~)
-% hObject    handle to lineLoadBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = analysisTmpls(handles, 'line', 'load');
-
-guidata(hObject, handles);
-
-
-
-
-% --- Executes on button press in lineDelBtn.
-function lineDelBtn_Callback(hObject, ~, ~)
-% hObject    handle to lineDelBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = analysisTmpls(handles, 'line', 'delete');
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in polySaveBtn.
-function polySaveBtn_Callback(hObject, ~, ~)
-% hObject    handle to polySaveBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = analysisTmpls(handles, 'poly', 'save');
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in polyLoadBtn.
-function polyLoadBtn_Callback(hObject, ~, ~)
-% hObject    handle to polyLoadBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = analysisTmpls(handles, 'poly', 'load');
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in polyDelBtn.
-function polyDelBtn_Callback(hObject, ~, ~)
-% hObject    handle to polyDelBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles = analysisTmpls(handles, 'poly', 'delete');
-
-guidata(hObject, handles);
-
-
-
-
-
-
-% --- Executes on button press in dirMapBtn.
-function dirMapBtn_Callback(hObject, ~, ~)
-% hObject    handle to dirMapBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-% Show the directional map
-handles.dirMap.show = true;
-handles.dirMap.quiet = false;
-
-try
-    handles = directionMap(handles);
-catch ME
-    msgbox(getReport(ME, 'extended', 'hyperlinks', 'off'));
-    return
-end
-
-guidata(hObject, handles);
-
-
 
 % --- Executes on selection change in setDirMapTypPop.
 function setDirMapTypPop_Callback(hObject, ~, ~)
-% hObject    handle to setDirMapTypPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setDirMapTypPop (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns setDirMapTypPop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from setDirMapTypPop
-handles = guidata(hObject);
+    % Hints: contents = cellstr(get(hObject,'String')) returns setDirMapTypPop contents as cell array
+    %        contents{get(hObject,'Value')} returns selected item from setDirMapTypPop
+    handles = guidata(hObject);
 
-% Choices (defined in guide):
-% 1 - 'Time Contr.'
-% 2 - 'Anis. Difs'
-% 3 - 'Difs-Adv.'
-% 4 - 'Difs-Adv.+Src'
-% 5 - 'Comp. Mods'
-% 6 - '3D_Difs-Adv.'
-handles.direction.mapType = get(hObject, 'Value');
+    % Choices (defined in guide):
+    % 1 - 'Time Contr.'
+    % 2 - 'Anis. Difs'
+    % 3 - 'Difs-Adv.'
+    % 4 - 'Difs-Adv.+Src'
+    % 5 - 'Comp. Mods'
+    % 6 - '3D_Difs-Adv.'
+    % 7 - '3D_Difs-Adv.+Src'
+    handles.direction.mapType = get(hObject, 'Value');
 
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
-
-
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+end
 
 % --- Executes during object creation, after setting all properties.
 function setDirMapTypPop_CreateFcn(hObject, ~, ~)
-% hObject    handle to setDirMapTypPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to setDirMapTypPop (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+    % Hint: popupmenu controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
 end
-
-
-
 
 % --- Executes on button press in setDirHoodChk.
 function setDirHoodChk_Callback(hObject, ~, ~)
-% hObject    handle to setDirHoodChk (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setDirHoodChk (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of setDirHoodChk
-handles = guidata(hObject);
+    % Hint: get(hObject,'Value') returns toggle state of setDirHoodChk
+    handles = guidata(hObject);
 
-handles.direction.useHood = get(hObject, 'Value');
+    handles.direction.useHood = get(hObject, 'Value');
 
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
-
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+end
 
 function setDirHoodSizEd_Callback(hObject, ~, ~)
-% hObject    handle to setDirHoodSizEd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setDirHoodSizEd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of setDirHoodSizEd as text
-%        str2double(get(hObject,'String')) returns contents of setDirHoodSizEd as a double
-handles = guidata(hObject);
+    % Hints: get(hObject,'String') returns contents of setDirHoodSizEd as text
+    %        str2double(get(hObject,'String')) returns contents of setDirHoodSizEd as a double
+    handles = guidata(hObject);
 
-hoodSiz = str2double(get(hObject, 'String'));
+    hoodSiz = str2double(get(hObject, 'String'));
 
-% Check if odd, otherwise round to closest odd.
-if hoodSiz < 3
-    hoodSiz = 3;
-end
-
-if hoodSiz > 3
-    if hoodSiz/2 == int8(hoodSiz/2)
-        hoodSiz = hoodSiz + 1;
+    % Check if odd, otherwise round to closest odd.
+    if hoodSiz < 3
+        hoodSiz = 3;
     end
+
+    if hoodSiz > 3
+        if hoodSiz / 2 == int8(hoodSiz / 2)
+            hoodSiz = hoodSiz + 1;
+        end
+    end
+
+    % Update gui
+    set(hObject, 'String', num2str(hoodSiz));
+
+    handles.direction.hoodSiz = hoodSiz;
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
 end
-
-% Update gui
-set(hObject, 'String', num2str(hoodSiz));
-
-handles.direction.hoodSiz = hoodSiz;
-
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
-
 
 % --- Executes during object creation, after setting all properties.
 function setDirHoodSizEd_CreateFcn(hObject, ~, ~)
-% hObject    handle to setDirHoodSizEd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to setDirHoodSizEd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+    % Hint: edit controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
 end
-
-
-
-
 
 function setDirTempStart_Callback(hObject, ~, ~)
-% hObject    handle to setDirTempStart (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setDirTempStart (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of setDirTempStart as text
-%        str2double(get(hObject,'String')) returns contents of setDirTempStart as a double
-handles = guidata(hObject);
+    % Hints: get(hObject,'String') returns contents of setDirTempStart as text
+    %        str2double(get(hObject,'String')) returns contents of setDirTempStart as a double
+    handles = guidata(hObject);
 
-val = str2double(get(hObject,'String'));
-if val < 1
-    val = 1;
-elseif val > handles.dirTempEnd
-    val = handles.dirTempEnd;
+    val = str2double(get(hObject, 'String'));
+    if val < 1
+        val = 1;
+    elseif val > handles.dirTempEnd
+        val = handles.dirTempEnd;
+    end
+
+    handles.dirTempStart = val;
+    set(handles.setDirTempStart, 'String', num2str(handles.dirTempStart));
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
 end
-
-handles.dirTempStart = val;
-set(handles.setDirTempStart, 'String', num2str(handles.dirTempStart));
-
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
 
 % --- Executes during object creation, after setting all properties.
 function setDirTempStart_CreateFcn(hObject, ~, ~)
-% hObject    handle to setDirTempStart (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to setDirTempStart (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+    % Hint: edit controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
 end
-
-
-
-
 
 function setDirTempEnd_Callback(hObject, ~, ~)
-% hObject    handle to setDirTempEnd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setDirTempEnd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of setDirTempEnd as text
-%        str2double(get(hObject,'String')) returns contents of setDirTempEnd as a double
-handles = guidata(hObject);
+    % Hints: get(hObject,'String') returns contents of setDirTempEnd as text
+    %        str2double(get(hObject,'String')) returns contents of setDirTempEnd as a double
+    handles = guidata(hObject);
 
-val = str2double(get(hObject,'String'));
-if val > handles.stackNum
-    val = handles.stackNum;
-elseif val < handles.dirTempStart
-    val = handles.dirTempStart;
+    val = str2double(get(hObject, 'String'));
+    if val > handles.stackNum
+        val = handles.stackNum;
+    elseif val < handles.dirTempStart
+        val = handles.dirTempStart;
+    end
+
+    handles.dirTempEnd = val;
+    set(handles.setDirTempEnd, 'String', num2str(handles.dirTempEnd));
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
 end
-
-handles.dirTempEnd = val;
-set(handles.setDirTempEnd, 'String', num2str(handles.dirTempEnd));
-
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
 
 % --- Executes during object creation, after setting all properties.
 function setDirTempEnd_CreateFcn(hObject, ~, ~)
-% hObject    handle to setDirTempEnd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to setDirTempEnd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+    % Hint: edit controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
 end
-
 
 % --- Executes on button press in setDirTempWinChk.
 function setDirTempWinChk_Callback(hObject, ~, ~)
-% hObject    handle to setDirTempWinChk (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setDirTempWinChk (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of setDirTempWinChk
-handles = guidata(hObject);
+    % Hint: get(hObject,'Value') returns toggle state of setDirTempWinChk
+    handles = guidata(hObject);
 
-handles.direction.useTimeWin = get(hObject, 'Value');
+    handles.direction.useTimeWin = get(hObject, 'Value');
 
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
-
-function setDirTempWinSizEd_Callback(hObject, ~, ~)
-% hObject    handle to setDirTempWinSizEd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of setDirTempWinSizEd as text
-%        str2double(get(hObject,'String')) returns contents of setDirTempWinSizEd as a double
-handles = guidata(hObject);
-
-timeWinSiz = str2double(get(hObject, 'String'));
-
-% Check if greater than number of selected slices or less than 2
-if timeWinSiz > handles.dirTempEnd - handles.dirTempStart - 1
-    timeWinSiz = handles.dirTempEnd - handles.dirTempStart - 1;
-elseif timeWinSiz < 2
-    timeWinSiz = 2;
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
 end
 
-% Update gui
-set(hObject, 'String', num2str(timeWinSiz));
+function setDirTempWinSizEd_Callback(hObject, ~, ~)
+    % hObject    handle to setDirTempWinSizEd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-handles.direction.timeWinSiz = timeWinSiz;
+    % Hints: get(hObject,'String') returns contents of setDirTempWinSizEd as text
+    %        str2double(get(hObject,'String')) returns contents of setDirTempWinSizEd as a double
+    handles = guidata(hObject);
 
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
+    timeWinSiz = str2double(get(hObject, 'String'));
 
+    % Check if greater than number of selected slices or less than 2
+    if timeWinSiz > handles.dirTempEnd - handles.dirTempStart - 1
+        timeWinSiz = handles.dirTempEnd - handles.dirTempStart - 1;
+    elseif timeWinSiz < 2
+        timeWinSiz = 2;
+    end
 
+    % Update gui
+    set(hObject, 'String', num2str(timeWinSiz));
+
+    handles.direction.timeWinSiz = timeWinSiz;
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+end
 
 % --- Executes during object creation, after setting all properties.
 function setDirTempWinSizEd_CreateFcn(hObject, ~, ~)
-% hObject    handle to setDirTempWinSizEd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to setDirTempWinSizEd (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+    % Hint: edit controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
 end
-
-
 
 % --- Executes on button press in setDirSmthModChk.
 function setDirSmthModChk_Callback(hObject, ~, ~)
-% hObject    handle to setDirSmthModChk (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setDirSmthModChk (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of setDirSmthModChk
-handles = guidata(hObject);
+    % Hint: get(hObject,'Value') returns toggle state of setDirSmthModChk
+    handles = guidata(hObject);
 
-handles.direction.smoothModel = get(hObject, 'Value');
+    handles.direction.smoothModel = get(hObject, 'Value');
 
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+end
 
 % --- Executes during object creation, after setting all properties.
 function SetXYUnits_CreateFcn(hObject, ~, ~)
-% hObject    handle to SetXYUnits (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to SetXYUnits (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+    % Hint: edit controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
 end
-
-
 
 function SetXYUnits_Callback(hObject, ~, ~)
-% hObject    handle to SetXYUnits (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to SetXYUnits (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of SetXYUnits as text
-%        str2double(get(hObject,'String')) returns contents of SetXYUnits as a double
-handles = guidata(hObject);
+    % Hints: get(hObject,'String') returns contents of SetXYUnits as text
+    %        str2double(get(hObject,'String')) returns contents of SetXYUnits as a double
+    handles = guidata(hObject);
 
-val = str2double(split(get(hObject, 'String'), ','));
-switch length(val)
-    case 1
-        txt = sprintf('Only one value entered for dx, dy, dz.\nAssuming dx=dy=dz=%g', val);
-        msgbox(txt);
-        val = [val, val, val];
-    case 2
-        txt = sprintf('Only two values entered for dx, dy, dz.\nAssuming dx=dy=%g dz=%g', val(1), val(2));
-        msgbox(txt);
-        val = [val(1), val(1), val(2)];
-    case 3
-    otherwise
-        txt = sprintf('Too many value provided for dx, dy, dz.');
-        msgbox(txt);
-        return
+    val = str2double(split(get(hObject, 'String'), ','));
+    switch length(val)
+        case 1
+            txt = sprintf('Only one value entered for dx, dy, dz.\nAssuming dx=dy=dz=%g', val);
+            msgbox(txt);
+            val = [val, val, val];
+        case 2
+            txt = sprintf('Only two values entered for dx, dy, dz.\nAssuming dx=dy=%g dz=%g', val(1), val(2));
+            msgbox(txt);
+            val = [val(1), val(1), val(2)];
+        case 3
+        otherwise
+            txt = sprintf('Too many value provided for dx, dy, dz.');
+            msgbox(txt);
+            return
+    end
+
+    val = val / 1000000; % Entered values are in um
+    handles.expInfo.ds = val;
+
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
 end
-
-val = val / 1000000;  % Entered values are in um
-handles.expInfo.ds = val;
-
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
 
 % --- Executes during object creation, after setting all properties.
 function setTUnits_CreateFcn(hObject, ~, ~)
-% hObject    handle to setTUnits (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to setTUnits (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+    % Hint: edit controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
+    end
 end
 
-
-
 function setTUnits_Callback(hObject, ~, ~)
-% hObject    handle to setTUnits (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setTUnits (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of setTUnits as text
-%        str2double(get(hObject,'String')) returns contents of setTUnits as a double
-handles = guidata(hObject);
+    % Hints: get(hObject,'String') returns contents of setTUnits as text
+    %        str2double(get(hObject,'String')) returns contents of setTUnits as a double
+    handles = guidata(hObject);
 
-handles.expInfo.dt = str2double(get(hObject, 'String'));
+    handles.expInfo.dt = str2double(get(hObject, 'String'));
 
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
-
-
-
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+end
 
 % --- Executes on button press in setUsChk.
 function setUseDicomChk_Callback(hObject, ~, ~)
-% hObject    handle to setUseDicomChk (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setUseDicomChk (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of setUseDicomChk
-msgbox('Not implemented. Enter values manually.');
-set(hObject, 'Value', 0);
-
-
-
-
-
+    % Hint: get(hObject,'Value') returns toggle state of setUseDicomChk
+    msgbox('Not implemented. Enter values manually.');
+    set(hObject, 'Value', 0);
+end
 
 % --- Executes on button press in setTempBtn.
 function setTempBtn_Callback(hObject, ~, ~)
-% hObject    handle to setTempBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to setTempBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Copy current stack to template
-handles.stackTmplOrig = handles.stackImg;
-handles.stackTmpl = handles.stackImg;
-handles.tmplCLims = handles.stackCLims;
+    % Copy current stack to template
+    handles.stackTmplOrig = handles.stackImg;
+    handles.stackTmpl = handles.stackImg;
+    handles.tmplCLims = handles.stackCLims;
 
-% If available, copy experiment info to template
-try
-    handles.tmplInfo = handles.expInfo;
-catch
+    % If available, copy experiment info to template
+    try
+        handles.tmplInfo = handles.expInfo;
+    catch
+    end
+
+    % Show current image
+    axes(handles.tmplAx);
+    handles.tmpl = imagesc(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), handles.tmplCLims);
+    colormap(handles.tmplAx, colormap(handles.mainAx));
+    pos = get(handles.tmplAx, 'Position');
+    handles.tmplCBar = colorbar('location', 'south', ...
+        'FontSize', 8, ...
+        'AxisLocation', 'in', ...
+        'Color', [0.5, 0.5, 0.5], ...
+        'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
 end
-
-
-% Show current image
-axes(handles.tmplAx);
-handles.tmpl = imagesc(handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx), handles.tmplCLims);
-colormap(handles.tmplAx, colormap(handles.mainAx));
-pos = get(handles.tmplAx, 'Position');
-handles.tmplCBar = colorbar('location', 'south', ...
-    'FontSize', 8, ...
-    'AxisLocation', 'in', ...
-    'Color', [0.5, 0.5, 0.5], ...
-    'Position', [pos(1), pos(2), pos(3), pos(4) * 0.02]);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
-
 
 % --- Executes on button press in clearTemplBtn.
 function clearTemplBtn_Callback(hObject, ~, ~)
-% hObject    handle to clearTemplBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to clearTemplBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Check if there is a template to clear
-if ~isfield(handles, 'tmpl')
-    return
+    % Check if there is a template to clear
+    if ~isfield(handles, 'tmpl')
+        return
+    end
+
+    % Clear axes
+    cla(handles.tmplAx);
+
+    % Delete colorbar
+    delete(handles.tmplCBar);
+
+    % Remove from handles
+    handles = rmfield(handles, {'stackTmplOrig', ...
+                                    'stackTmpl', ...
+                                'tmpl'});
+
+    % Try to delete the template info
+    try
+        handles = rmfield(handles, 'tmplInfo');
+    catch
+    end
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
 end
-
-% Clear axes
-cla(handles.tmplAx);
-
-% Delete colorbar
-delete(handles.tmplCBar);
-
-% Remove from handles
-handles = rmfield(handles, {'stackTmplOrig', ...
-    'stackTmpl', ...
-    'tmpl'});
-
-% Try to delete the template info
-try
-    handles = rmfield(handles, 'tmplInfo');
-catch
-end
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
-
 
 % --- Executes on button press in align2TemplBtn.
 function align2TemplBtn_Callback(hObject, ~, ~)
-% hObject    handle to align2TemplBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to align2TemplBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Check if there is a template, if not bail
-if ~isfield(handles, 'tmpl')
-    return
-end
+    % Check if there is a template, if not bail
+    if ~isfield(handles, 'tmpl')
+        return
+    end
 
-% Use current slice
-moving = handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx);
-fixed = handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx);
+    % Use current slice
+    moving = handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx);
+    fixed = handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx);
 
-% Initialize optimizer
-[optimizer, metric] = imregconfig('monomodal');
+    % Initialize optimizer
+    [optimizer, metric] = imregconfig('monomodal');
 
-% Find transform to register to template
-method = handles.alignType;
-tform = imregtform(moving, fixed, method, optimizer, metric);
+    % Find transform to register to template
+    method = handles.alignType;
+    tform = imregtform(moving, fixed, method, optimizer, metric);
 
-% Warp the image according to the transform
-movingReg = imwarp(moving, tform, 'OutputView', imref2d(size(moving)), 'Interp', 'cubic');
+    % Warp the image according to the transform
+    movingReg = imwarp(moving, tform, 'OutputView', imref2d(size(moving)), 'Interp', 'cubic');
 
-% Show before and after
-f3 = figure(3);
+    % Show before and after
+    f3 = figure(3);
 
-subplot(1, 2, 1);
-imagesc(imfuse(fixed, moving, 'Scaling', 'joint'));
-set(gca,'visible','off');
-title('Before');
-axis equal;
+    subplot(1, 2, 1);
+    imagesc(imfuse(fixed, moving, 'Scaling', 'joint'));
+    set(gca, 'visible', 'off');
+    title('Before');
+    axis equal;
 
-subplot(1, 2, 2);
-imagesc(imfuse(fixed, movingReg, 'Scaling', 'joint'));
-set(gca,'visible','off');
-title('After');
-axis equal;
+    subplot(1, 2, 2);
+    imagesc(imfuse(fixed, movingReg, 'Scaling', 'joint'));
+    set(gca, 'visible', 'off');
+    title('After');
+    axis equal;
 
-set(gcf, 'NextPlot', 'add');
+    set(gcf, 'NextPlot', 'add');
 
-axes;
-h = title(['Results of alignment using: ', handles.alignType]);
-set(gca, 'Visible', 'off');
-set(h, 'Visible', 'on');
+    axes;
+    h = title(['Results of alignment using: ', handles.alignType]);
+    set(gca, 'Visible', 'off');
+    set(h, 'Visible', 'on');
 
-% Ask user to proceed
-if ~strcmp('Yes', questdlg('Proceed with alignment?'))
-    close(f3);
-    return
-end
+    % Ask user to proceed
+    if ~strcmp('Yes', questdlg('Proceed with alignment?'))
+        close(f3);
+        return
+    end
 
-% Align the 4D cubes
-for sliceIdx = 1 : handles.sliceNum
-    for stackIdx = 1 : handles.stackNum
-        try
-            reg = imwarp(handles.stackImg(:, :, sliceIdx, stackIdx), ...
-                tform, ...
-                'OutputView', imref2d(size(moving)), ...
-                'Interp', 'cubic');
-            handles.stackImg(:, :, sliceIdx, stackIdx) = reg;
-        catch
+    % Align the 4D cubes
+    for sliceIdx = 1:handles.sliceNum
+        for stackIdx = 1:handles.stackNum
+            try
+                reg = imwarp(handles.stackImg(:, :, sliceIdx, stackIdx), ...
+                    tform, ...
+                    'OutputView', imref2d(size(moving)), ...
+                    'Interp', 'cubic');
+                handles.stackImg(:, :, sliceIdx, stackIdx) = reg;
+            catch
+            end
         end
     end
+
+    % Update axes
+    % set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+
+    % Close figure
+    close(f3);
+
+    guidata(hObject, handles);
 end
-
-% Update axes
-% set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
-set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-
-% Close figure
-close(f3);
-
-guidata(hObject, handles);
-
-
 
 % --- Executes on selection change in setAlignMtdPop.
 function setAlignMtdPop_Callback(hObject, ~, ~)
-% hObject    handle to setAlignMtdPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+    % hObject    handle to setAlignMtdPop (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns setAlignMtdPop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from setAlignMtdPop
-handles = guidata(hObject);
+    % Hints: contents = cellstr(get(hObject,'String')) returns setAlignMtdPop contents as cell array
+    %        contents{get(hObject,'Value')} returns selected item from setAlignMtdPop
+    handles = guidata(hObject);
 
-% Choices (defined in guide):
-% 1 - 'translation'
-% 2 - 'rigid'
-% 3 - 'similarity'
-% 4 - 'affine'
-content = cellstr(get(hObject, 'String'));
-handles.alignType = content{get(hObject, 'Value')};
+    % Choices (defined in guide):
+    % 1 - 'translation'
+    % 2 - 'rigid'
+    % 3 - 'similarity'
+    % 4 - 'affine'
+    content = cellstr(get(hObject, 'String'));
+    handles.alignType = content{get(hObject, 'Value')};
 
-% Need to push the data so that it is available in handles.mainGui
-guidata(hObject, handles);
-
-
+    % Need to push the data so that it is available in handles.mainGui
+    guidata(hObject, handles);
+end
 
 % --- Executes during object creation, after setting all properties.
 function setAlignMtdPop_CreateFcn(hObject, ~, ~)
-% hObject    handle to setAlignMtdPop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+    % hObject    handle to setAlignMtdPop (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-
-
-% --- Executes on button press in incImgZBtn.
-function incImgZBtn_Callback(hObject, ~, ~)
-% hObject    handle to incImgZBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles.stackImg = circshift(handles.stackImg, [0, 0, 1, 0]);
-
-% Update axes
-set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-
-guidata(hObject, handles);
-
-
-% --- Executes on button press in decImgZBtn.
-function decImgZBtn_Callback(hObject, ~, ~)
-% hObject    handle to decImgZBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-handles.stackImg = circshift(handles.stackImg, [0, 0, -1, 0]);
-
-% Update axes
-set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-
-guidata(hObject, handles);
-
-
-
-% --- Executes on button press in rmBaselnBtn.
-function rmBaselnBtn_Callback(hObject, ~, ~)
-% hObject    handle to rmBaselnBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-
-% Notify user that saving is ongoing
-h = msgbox('Removing baseline...');
-
-% Use first temporal stack as baseline
-handles.stackImg = handles.stackImg - repmat(handles.stackImg(:, :, :, 1), 1, 1, 1, handles.stackNum);
-
-% Change the colorscale to improve contrast
-q = prctile(handles.stackImg(:), handles.cOut);
-handles.stackCLims = [q(1), q(2)];
-set(handles.mainAx, 'CLim', handles.stackCLims);
-
-% Update the image
-set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
-
-% If the template exists ask if it should be processed as well
-if isfield(handles, 'tmpl')
-    answ = questdlg('Process also the template (with its own baseline)?', ...
-        'Process template', ...
-        'Yes', 'No', 'Yes');
-    switch answ
-        case 'Yes'
-            handles.stackTmpl = handles.stackTmpl - repmat(handles.stackTmpl(:, :, :, 1), 1, 1, 1, handles.stackNum);
-            
-            % Change the colorscale to improve contrast
-            q = prctile(handles.stackTmpl(:), handles.cOut);
-            handles.tmplCLims = [q(1), q(2)];
-            set(handles.tmplAx, 'CLim', handles.tmplCLims);
-            
-            % Update the image
-            set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
-            
-        case 'No'
+    % Hint: popupmenu controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject, 'BackgroundColor'), get(0, 'defaultUicontrolBackgroundColor'))
+        set(hObject, 'BackgroundColor', 'white');
     end
 end
 
+% --- Executes on button press in incImgZBtn.
+function incImgZBtn_Callback(hObject, ~, ~)
+    % hObject    handle to incImgZBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Update array indexing
-handles = updateIdx(handles);
+    handles.stackImg = circshift(handles.stackImg, [0, 0, 1, 0]);
 
-% Update display
-handles = updateGui(handles);
+    % Update axes
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
 
-% Remove notification
-try
-    delete(h);
-catch
+    guidata(hObject, handles);
 end
 
-guidata(hObject, handles);
+% --- Executes on button press in decImgZBtn.
+function decImgZBtn_Callback(hObject, ~, ~)
+    % hObject    handle to decImgZBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
+    handles.stackImg = circshift(handles.stackImg, [0, 0, -1, 0]);
+
+    % Update axes
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+
+    guidata(hObject, handles);
+end
+
+% --- Executes on button press in rmBaselnBtn.
+function rmBaselnBtn_Callback(hObject, ~, ~)
+    % hObject    handle to rmBaselnBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
+
+    % Notify user that saving is ongoing
+    h = msgbox('Removing baseline...');
+
+    % Use first temporal stack as baseline
+    handles.stackImg = handles.stackImg - repmat(handles.stackImg(:, :, :, 1), 1, 1, 1, handles.stackNum);
+
+    % Change the colorscale to improve contrast
+    q = prctile(handles.stackImg(:), handles.cOut);
+    handles.stackCLims = [q(1), q(2)];
+    set(handles.mainAx, 'CLim', handles.stackCLims);
+
+    % Update the image
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+
+    % If the template exists ask if it should be processed as well
+    if isfield(handles, 'tmpl')
+        answ = questdlg('Process also the template (with its own baseline)?', ...
+            'Process template', ...
+            'Yes', 'No', 'Yes');
+        switch answ
+            case 'Yes'
+                handles.stackTmpl = handles.stackTmpl - repmat(handles.stackTmpl(:, :, :, 1), 1, 1, 1, handles.stackNum);
+
+                % Change the colorscale to improve contrast
+                q = prctile(handles.stackTmpl(:), handles.cOut);
+                handles.tmplCLims = [q(1), q(2)];
+                set(handles.tmplAx, 'CLim', handles.tmplCLims);
+
+                % Update the image
+                set(handles.tmpl, 'CData', handles.stackTmpl(:, :, handles.sliceIdx, handles.stackIdx));
+
+            case 'No'
+        end
+    end
+
+    % Update array indexing
+    handles = updateIdx(handles);
+
+    % Update display
+    handles = updateGui(handles);
+
+    % Remove notification
+    try
+        delete(h);
+    catch
+    end
+
+    guidata(hObject, handles);
+end
 
 % --- Executes on button press in eqScalesBtn.
 function eqScalesBtn_Callback(hObject, ~, ~)
-% hObject    handle to eqScalesBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to eqScalesBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Evaluate the data ranges within the two images
-q = prctile(handles.stackImg(:), handles.cOut);
-if isfield(handles, 'tmpl')
-    qt = prctile(handles.stackTmpl(:), handles.cOut);
-    q(1) = min(q(1), qt(1));
-    q(2) = max(q(2), qt(2));
-    handles.tmplCLims = q;
-    set(handles.tmplAx, 'CLim', handles.tmplCLims);
+    % Evaluate the data ranges within the two images
+    q = prctile(handles.stackImg(:), handles.cOut);
+    if isfield(handles, 'tmpl')
+        qt = prctile(handles.stackTmpl(:), handles.cOut);
+        q(1) = min(q(1), qt(1));
+        q(2) = max(q(2), qt(2));
+        handles.tmplCLims = q;
+        set(handles.tmplAx, 'CLim', handles.tmplCLims);
+    end
+    handles.stackCLims = q;
+    set(handles.mainAx, 'CLim', handles.stackCLims);
+
+    % Update array indexing
+    handles = updateIdx(handles);
+
+    % Update display
+    handles = updateGui(handles);
+
+    guidata(hObject, handles);
 end
-handles.stackCLims = q;
-set(handles.mainAx, 'CLim', handles.stackCLims);
-
-
-% Update array indexing
-handles = updateIdx(handles);
-
-% Update display
-handles = updateGui(handles);
-
-guidata(hObject, handles);
-
 
 % --- Executes on button press in thresNoiseBtn.
 function thresNoiseBtn_Callback(hObject, ~, ~)
-% hObject    handle to thresNoiseBtn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to thresNoiseBtn (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Can do some smart evaluation here by looking at the distribution of the
-% data that appears to be bimodal. The minimum in between the modes would
-% be a good spot to use as threshold.
+    % Can do some smart evaluation here by looking at the distribution of the
+    % data that appears to be bimodal. The minimum in between the modes would
+    % be a good spot to use as threshold.
 
-thrs = 100;
+    thrs = 100;
 
-% Threhsold image with the found value and store new mask
-handles.stackMask = (handles.stackImg > thrs);
-handles.stackImg = handles.stackImg .* handles.stackMask;
+    % Threhsold image with the found value and store new mask
+    handles.stackMask = (handles.stackImg > thrs);
+    handles.stackImg = handles.stackImg .* handles.stackMask;
 
-% Update image
-set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
+    % Update image
+    set(handles.img, 'CData', handles.stackImg(:, :, handles.sliceIdx, handles.stackIdx));
 
-% Update array indexing
-handles = updateIdx(handles);
+    % Update array indexing
+    handles = updateIdx(handles);
 
-% Update display
-handles = updateGui(handles);
+    % Update display
+    handles = updateGui(handles);
 
-guidata(hObject, handles);
-
-
-
-
-
-
-
-
-
-
-
-
-
+    guidata(hObject, handles);
+end
 
 %% Mouse events -----------------------------------------------------------
 
 % --- Executes on mouse motion over figure - except title and menu.
 function mainGui_WindowButtonMotionFcn(hObject, ~, ~)
-% hObject    handle to mainGui (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mainGui (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Get location of mouse respect to application window
-pos = get(hObject, 'currentPoint');  % (0,0) is bottom-left
-pX = pos(1);
-pY = pos(2);
+    % Get location of mouse respect to application window
+    pos = get(hObject, 'currentPoint'); % (0,0) is bottom-left
+    pX = pos(1);
+    pY = pos(2);
 
-% Get information about location and size of axes
-maLoc = get(handles.mainAx, 'Position');
-maL = maLoc(1);
-maB = maLoc(2);
-maW = maLoc(3);
-maH = maLoc(4);
+    % Get information about location and size of axes
+    maLoc = get(handles.mainAx, 'Position');
+    maL = maLoc(1);
+    maB = maLoc(2);
+    maW = maLoc(3);
+    maH = maLoc(4);
 
-handles.onImage = false;
+    handles.onImage = false;
 
-% Check if within image limits
-if pX >= maL && pY >= maB
-    maX = pX - maL;
-    maY = pY - maB;
-    if maX <= maW && maY <= maH
-        handles.onImage = true;
-        cPos = get(handles.mainAx, 'CurrentPoint');
-        handles.posIdx = round(cPos(1, 1:2));
-        handles = updateIdx(handles);  % Update array indexing
-        handles = updateGui(handles);  % Update display
+    % Check if within image limits
+    if pX >= maL && pY >= maB
+        maX = pX - maL;
+        maY = pY - maB;
+        if maX <= maW && maY <= maH
+            handles.onImage = true;
+            cPos = get(handles.mainAx, 'CurrentPoint');
+            handles.posIdx = round(cPos(1, 1:2));
+            handles = updateIdx(handles); % Update array indexing
+            handles = updateGui(handles); % Update display
+        end
     end
+
+    guidata(hObject, handles);
 end
-
-guidata(hObject, handles);
-
 
 % --- Executes on mouse press over figure background, over a disabled or
 % --- inactive control, or over an axes background.
 function mainGui_WindowButtonDownFcn(hObject, ~, ~)
-% hObject    handle to mainGui (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mainGui (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Grab the type of mouse button event
-handles.buttonType = get(hObject, 'SelectionType');
+    % Grab the type of mouse button event
+    handles.buttonType = get(hObject, 'SelectionType');
 
-guidata(hObject, handles);
-
-
+    guidata(hObject, handles);
+end
 
 % --- Executes on mouse press over figure background, over a disabled or
 % --- inactive control, or over an axes background.
 function mainGui_WindowButtonUpFcn(hObject, ~, ~)
-% hObject    handle to mainGui (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mainGui (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-switch handles.selection.mode
-    case 'point'
-        switch handles.buttonType
-            case 'normal' % Left Single-Click
-                if handles.onImage
-                    handles = pointAnalyze(handles);
-                end
-            case 'open' % Left Double-Click
-        end
-    case 'line'
-        switch handles.buttonType
-            case 'normal'
-                if handles.onImage
-                    if ~handles.drawing.active
-                        txt = {'Drag the ends of the line to select a cross', ...
-                            'section. The temporal evolution will be shown', ...
-                            'in real time in a popup figure.', ...
-                            'To remove the line, double-click on it.'};
-                        uiwait(msgbox(txt));
-                        startPos = [handles.posIdx(1), handles.posIdx(1) + 10; ...
-                            handles.posIdx(2), handles.posIdx(2) + 10];
-                        handles = lineCreate(startPos, handles);
+    switch handles.selection.mode
+        case 'point'
+            switch handles.buttonType
+                case 'normal' % Left Single-Click
+                    if handles.onImage
+                        handles = pointAnalyze(handles);
                     end
-                end
-            case 'open'
-                handles = lineDestroy(handles);
-        end
-    case 'poly'
-        switch handles.buttonType
-            case 'normal'
-                if handles.onImage
-                    if ~handles.drawing.active
-                        txt = {'Click on the image to add new vertices.', ...
-                            'To close the polygon, click on the first vertex.', ...
-                            'The temporal evolution will be shown in real', ...
-                            'time as the vertices are moved. To remove the', ...
-                            'polygon, double click on it.'};
-                        uiwait(msgbox(txt));
-                        handles = polyCreate(handles);
+                case 'open' % Left Double-Click
+            end
+        case 'line'
+            switch handles.buttonType
+                case 'normal'
+                    if handles.onImage
+                        if ~handles.drawing.active
+                            txt = {'Drag the ends of the line to select a cross', ...
+                                       'section. The temporal evolution will be shown', ...
+                                       'in real time in a popup figure.', ...
+                                   'To remove the line, double-click on it.'};
+                            uiwait(msgbox(txt));
+                            startPos = [handles.posIdx(1), handles.posIdx(1) + 10; ...
+                                            handles.posIdx(2), handles.posIdx(2) + 10];
+                            handles = lineCreate(startPos, handles);
+                        end
                     end
-                end
-            case 'open'
-                handles = polyDestroy(handles);
-        end
+                case 'open'
+                    handles = lineDestroy(handles);
+            end
+        case 'poly'
+            switch handles.buttonType
+                case 'normal'
+                    if handles.onImage
+                        if ~handles.drawing.active
+                            txt = {'Click on the image to add new vertices.', ...
+                                       'To close the polygon, click on the first vertex.', ...
+                                       'The temporal evolution will be shown in real', ...
+                                       'time as the vertices are moved. To remove the', ...
+                                   'polygon, double click on it.'};
+                            uiwait(msgbox(txt));
+                            handles = polyCreate(handles);
+                        end
+                    end
+                case 'open'
+                    handles = polyDestroy(handles);
+            end
+    end
+
+    guidata(hObject, handles);
 end
-
-
-guidata(hObject, handles);
-
-
-
-
-
-
-
-
-
-
 
 %% Menu callbacks ---------------------------------------------------------
 
 % --------------------------------------------------------------------
 function mOpt_Callback(~, ~, ~)
-% hObject    handle to mOpt (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+    % hObject    handle to mOpt (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+end
 
 % --------------------------------------------------------------------
 function mOptColormap_Callback(hObject, ~, ~)
-% hObject    handle to mOptColormap (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mOptColormap (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Ask user to pick the colormap
-[s, v] = listdlg('PromptString', 'Select the desired colormap:', ...
-    'SelectionMode', 'single', ...
-    'ListString', handles.cmaps);
+    % Ask user to pick the colormap
+    [s, v] = listdlg('PromptString', 'Select the desired colormap:', ...
+        'SelectionMode', 'single', ...
+        'ListString', handles.cmaps);
 
-% If error, bail
-if v == 0
-    msgbox('There was an error during the selection process.');
-    return
+    % If error, bail
+    if v == 0
+        msgbox('There was an error during the selection process.');
+        return
+    end
+
+    % Check if the colormap exists
+    map = handles.cmaps{s};
+    if exist(map, 'file') == 0
+        msgbox('The selected colormap is not available on this system');
+        return
+    end
+
+    % Change the colormap of the main axis
+    try
+        colormap(handles.mainAx, map);
+        colormap(handles.tmplAx, map);
+    catch
+    end
+
+    guidata(hObject, handles);
 end
-
-% Check if the colormap exists
-map = handles.cmaps{s};
-if exist(map, 'file') == 0
-    msgbox('The selected colormap is not available on this system');
-    return
-end
-
-% Change the colormap of the main axis
-try
-    colormap(handles.mainAx, map);
-    colormap(handles.tmplAx, map);
-catch
-end
-
-guidata(hObject, handles);
-
 
 % --------------------------------------------------------------------
 function mOptSaturation_Callback(hObject, ~, ~)
-% hObject    handle to mOptSaturation (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mOptSaturation (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-% Check status, toggle and modify range
-if strcmp(get(hObject, 'Checked'), 'on')
-    set(hObject, 'Checked', 'off');
-    handles.cOut = [0, 100];
-else
-    set(hObject, 'Checked', 'on');
-    handles.cOut = [handles.outliers, 100 - handles.outliers];
+    % Check status, toggle and modify range
+    if strcmp(get(hObject, 'Checked'), 'on')
+        set(hObject, 'Checked', 'off');
+        handles.cOut = [0, 100];
+    else
+        set(hObject, 'Checked', 'on');
+        handles.cOut = [handles.outliers, 100 - handles.outliers];
+    end
+
+    % Update color limits on image and template
+    q = prctile(handles.stackImg(:), handles.cOut);
+    handles.stackCLims = q;
+    set(handles.mainAx, 'CLim', handles.stackCLims);
+    if isfield(handles, 'tmpl')
+        q = prctile(handles.stackTmpl(:), handles.cOut);
+        handles.tmplCLims = q;
+        set(handles.tmplAx, 'CLim', handles.tmplCLims);
+    end
+
+    guidata(hObject, handles);
 end
-
-% Update color limits on image and template
-q = prctile(handles.stackImg(:), handles.cOut);
-handles.stackCLims = q;
-set(handles.mainAx, 'CLim', handles.stackCLims);
-if isfield(handles, 'tmpl')
-    q = prctile(handles.stackTmpl(:), handles.cOut);
-    handles.tmplCLims = q;
-    set(handles.tmplAx, 'CLim', handles.tmplCLims);
-end
-
-guidata(hObject, handles);
-
-
-
-
 
 % --------------------------------------------------------------------
 function mExp_Callback(~, ~, ~)
-% hObject    handle to mExp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+    % hObject    handle to mExp (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+end
 
 % --------------------------------------------------------------------
 function mExp2Ws_Callback(~, ~, ~)
-% hObject    handle to mExp2Ws (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+    % hObject    handle to mExp2Ws (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+end
 
 % --------------------------------------------------------------------
 function mExp2File_Callback(~, ~, ~)
-% hObject    handle to mExp2File (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+    % hObject    handle to mExp2File (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+end
 
 % --------------------------------------------------------------------
 function mExp2Tiff_Callback(~, ~, ~)
-% hObject    handle to mExp2Tiff (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+    % hObject    handle to mExp2Tiff (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+end
 
 % --------------------------------------------------------------------
 function mExp2TiffOrig_Callback(hObject, ~, ~)
-% hObject    handle to mExp2TiffOrig (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mExp2TiffOrig (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-if ~isfield(handles, 'stackOrig')
-    msgbox('There is no stack to export!');
-    return
-end
+    if ~isfield(handles, 'stackOrig')
+        msgbox('There is no stack to export!');
+        return
+    end
 
-% Prepare name of file
-name = 'Original';
-if isfield(handles, 'expInfo')
-    name = strcat('Orig_', handles.expInfo.expNameExp);
-end
+    % Prepare name of file
+    name = 'Original';
+    if isfield(handles, 'expInfo')
+        name = strcat('Orig_', handles.expInfo.expNameExp);
+    end
 
-% Ask user if slice vs time or stack at current time
-export = questdlg('What should be exported?', ...
-    'Export to Tiff', ...
-    'Slice vs Time', ...
-    'Stack at Time', ...
+    % Ask user if slice vs time or stack at current time
+    export = questdlg('What should be exported?', ...
+        'Export to Tiff', ...
+        'Slice vs Time', ...
+        'Stack at Time', ...
     'Stack at Time');
-if isempty(export)
-    export = 'Stack at Time';
-end
+    if isempty(export)
+        export = 'Stack at Time';
+    end
 
-% Prepare file name appendix
-fileSpec = ['-t' num2str(handles.stackIdx)];
-if strcmp(export, 'Slice vs Time')
-    fileSpec = ['-s' num2str(handles.sliceIdx)];
-end
+    % Prepare file name appendix
+    fileSpec = ['-t' num2str(handles.stackIdx)];
+    if strcmp(export, 'Slice vs Time')
+        fileSpec = ['-s' num2str(handles.sliceIdx)];
+    end
 
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, ...
-    char(strcat(handles.machineId, ...
-    name, ...
-    fileSpec, ...
+    % Check if there is a last dir and prepare a default location
+    dir = handles.storePath;
+    if isfield(handles, 'lastSaveDir')
+        dir = handles.lastSaveDir;
+    end
+    fileName = fullfile(dir, ...
+        char(strcat(handles.machineId, ...
+        name, ...
+        fileSpec, ...
     '.tif')));
 
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.tif', ...
-    'Save file name', ...
-    fileName);
+    % Suggest user and ask where to save
+    [file, dir] = uiputfile('*.tif', ...
+        'Save file name', ...
+        fileName);
 
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-
-% Notify user that saving is ongoing
-h = msgbox('Exporting to Tiff...');
-
-if strcmp(export, 'Stack at Time')
-    % Extract the current time stack
-    data = handles.stackOrig(:, :, :, handles.stackIdx);
-    
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-    
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for sliceIdx = 1:handles.sliceNum
-        imwrite(data(:, :, sliceIdx), ...
-            fullfile(dir, file), ...
-            'WriteMode', 'append');
+    % Check if the user cancelled
+    if isequal(file, 0) || isequal(dir, 0)
+        return
     end
-else
-    % Extract the current time slice
-    data = squeeze(handles.stackOrig(:, :, handles.sliceIdx, :));
-    
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-    
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for stackIdx = 1:handles.stackNum
-        imwrite(data(:, :, stackIdx), ...
-            fullfile(dir, file), ...
-            'WriteMode', 'append');
+
+    % Notify user that saving is ongoing
+    h = msgbox('Exporting to Tiff...');
+
+    if strcmp(export, 'Stack at Time')
+        % Extract the current time stack
+        data = handles.stackOrig(:, :, :, handles.stackIdx);
+
+        % Normalize and scale to 16-bit
+        data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+        % Save current time to tiff file
+        handles.lastSaveDir = dir;
+        for sliceIdx = 1:handles.sliceNum
+            imwrite(data(:, :, sliceIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+        end
+    else
+        % Extract the current time slice
+        data = squeeze(handles.stackOrig(:, :, handles.sliceIdx, :));
+
+        % Normalize and scale to 16-bit
+        data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+        % Save current time to tiff file
+        handles.lastSaveDir = dir;
+        for stackIdx = 1:handles.stackNum
+            imwrite(data(:, :, stackIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+        end
     end
+
+    % Remove notification
+    try
+        delete(h);
+    catch
+    end
+
+    guidata(hObject, handles);
 end
-
-% Remove notification
-try
-    delete(h);
-catch
-end
-
-
-guidata(hObject, handles);
-
 
 % --------------------------------------------------------------------
 function mExp2TiffCurr_Callback(hObject, ~, ~)
-% hObject    handle to mExp2TiffCurr (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mExp2TiffCurr (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-if ~isfield(handles, 'stackImg')
-    msgbox('There is no stack to export!');
-    return
-end
+    if ~isfield(handles, 'stackImg')
+        msgbox('There is no stack to export!');
+        return
+    end
 
-% Prepare name of file
-name = 'Current';
-if isfield(handles, 'expInfo')
-    name = strcat('Curr_', handles.expInfo.expNameExp);
-end
+    % Prepare name of file
+    name = 'Current';
+    if isfield(handles, 'expInfo')
+        name = strcat('Curr_', handles.expInfo.expNameExp);
+    end
 
-% Ask user if slice vs time or stack at current time
-export = questdlg('What should be exported?', ...
-    'Export to Tiff', ...
-    'Slice vs Time', ...
-    'Stack at Time', ...
+    % Ask user if slice vs time or stack at current time
+    export = questdlg('What should be exported?', ...
+        'Export to Tiff', ...
+        'Slice vs Time', ...
+        'Stack at Time', ...
     'Stack at Time');
-if isempty(export)
-    export = 'Stack at Time';
-end
+    if isempty(export)
+        export = 'Stack at Time';
+    end
 
-% Prepare file name appendix
-fileSpec = ['-t' num2str(handles.stackIdx)];
-if strcmp(export, 'Slice vs Time')
-    fileSpec = ['-s' num2str(handles.sliceIdx)];
-end
+    % Prepare file name appendix
+    fileSpec = ['-t' num2str(handles.stackIdx)];
+    if strcmp(export, 'Slice vs Time')
+        fileSpec = ['-s' num2str(handles.sliceIdx)];
+    end
 
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, ...
-    char(strcat(handles.machineId, ...
-    name, ...
-    fileSpec, ...
+    % Check if there is a last dir and prepare a default location
+    dir = handles.storePath;
+    if isfield(handles, 'lastSaveDir')
+        dir = handles.lastSaveDir;
+    end
+    fileName = fullfile(dir, ...
+        char(strcat(handles.machineId, ...
+        name, ...
+        fileSpec, ...
     '.tif')));
 
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.tif', ...
-    'Save file name', ...
-    fileName);
+    % Suggest user and ask where to save
+    [file, dir] = uiputfile('*.tif', ...
+        'Save file name', ...
+        fileName);
 
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-
-% Notify user that saving is ongoing
-h = msgbox('Exporting to Tiff...');
-
-if strcmp(export, 'Stack at Time')
-    % Extract the current time slice
-    data = handles.stackImg(:, :, :, handles.stackIdx);
-    
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-    
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for sliceIdx = 1:handles.sliceNum
-        imwrite(data(:, :, sliceIdx), ...
-            fullfile(dir, file), ...
-            'WriteMode', 'append');
+    % Check if the user cancelled
+    if isequal(file, 0) || isequal(dir, 0)
+        return
     end
-else
-    % Extract the current time slice
-    data = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
-    
-    % Normalize and scale to 16-bit
-    data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
-    
-    % Save current time to tiff file
-    handles.lastSaveDir = dir;
-    for stackIdx = 1:handles.stackNum
-        imwrite(data(:, :, stackIdx), ...
-            fullfile(dir, file), ...
-            'WriteMode', 'append');
+
+    % Notify user that saving is ongoing
+    h = msgbox('Exporting to Tiff...');
+
+    if strcmp(export, 'Stack at Time')
+        % Extract the current time slice
+        data = handles.stackImg(:, :, :, handles.stackIdx);
+
+        % Normalize and scale to 16-bit
+        data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+        % Save current time to tiff file
+        handles.lastSaveDir = dir;
+        for sliceIdx = 1:handles.sliceNum
+            imwrite(data(:, :, sliceIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+        end
+    else
+        % Extract the current time slice
+        data = squeeze(handles.stackImg(:, :, handles.sliceIdx, :));
+
+        % Normalize and scale to 16-bit
+        data = uint16(65535 * (data - min(data(:))) / (max(data(:)) - min(data(:))));
+
+        % Save current time to tiff file
+        handles.lastSaveDir = dir;
+        for stackIdx = 1:handles.stackNum
+            imwrite(data(:, :, stackIdx), ...
+                fullfile(dir, file), ...
+                'WriteMode', 'append');
+        end
     end
+
+    % Remove notification
+    try
+        delete(h);
+    catch
+    end
+
+    guidata(hObject, handles);
 end
-
-% Remove notification
-try
-    delete(h);
-catch
-end
-
-guidata(hObject, handles);
-
 
 % --------------------------------------------------------------------
 function mExp2FileOrig_Callback(hObject, ~, ~)
-% hObject    handle to mExp2FileOrig (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mExp2FileOrig (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-if ~isfield(handles, 'stackOrig')
-    msgbox('There is no stack to export!');
-    return
+    if ~isfield(handles, 'stackOrig')
+        msgbox('There is no stack to export!');
+        return
+    end
+
+    % Prepare name of file
+    name = 'Original';
+    if isfield(handles, 'expInfo')
+        name = strcat('Orig_', handles.expInfo.expNameExp);
+    end
+
+    % Check if there is a last dir and prepare a default location
+    dir = handles.storePath;
+    if isfield(handles, 'lastSaveDir')
+        dir = handles.lastSaveDir;
+    end
+    fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
+
+    % Suggest user and ask where to save
+    [file, dir] = uiputfile('*.mat', ...
+        'Save file name', ...
+        fileName);
+
+    % Check if the user cancelled
+    if isequal(file, 0) || isequal(dir, 0)
+        return
+    end
+
+    % Notify user that saving is ongoing
+    h = msgbox('Exporting to file...');
+
+    % Save to file
+    handles.lastSaveDir = dir;
+    save(fullfile(dir, file), ...
+        '-struct', 'handles', 'stackOrig');
+
+    % Remove notification
+    try
+        delete(h);
+    catch
+    end
+
+    guidata(hObject, handles);
 end
-
-% Prepare name of file
-name = 'Original';
-if isfield(handles, 'expInfo')
-    name = strcat('Orig_', handles.expInfo.expNameExp);
-end
-
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
-
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.mat', ...
-    'Save file name', ...
-    fileName);
-
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-
-% Notify user that saving is ongoing
-h = msgbox('Exporting to file...');
-
-% Save to file
-handles.lastSaveDir = dir;
-save(fullfile(dir, file), ...
-    '-struct', 'handles', 'stackOrig');
-
-% Remove notification
-try
-    delete(h);
-catch
-end
-
-guidata(hObject, handles);
-
 
 % --------------------------------------------------------------------
 function mExp2FileCurr_Callback(hObject, ~, ~)
-% hObject    handle to mExp2FileCurr (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mExp2FileCurr (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-if ~isfield(handles, 'stackImg')
-    msgbox('There is no stack to export!');
-    return
+    if ~isfield(handles, 'stackImg')
+        msgbox('There is no stack to export!');
+        return
+    end
+
+    % Prepare name of file
+    name = 'Current';
+    if isfield(handles, 'expInfo')
+        name = strcat('Curr_', handles.expInfo.expNameExp);
+    end
+
+    % Check if there is a last dir and prepare a default location
+    dir = handles.storePath;
+    if isfield(handles, 'lastSaveDir')
+        dir = handles.lastSaveDir;
+    end
+    fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
+
+    % Suggest user and ask where to save
+    [file, dir] = uiputfile('*.mat', ...
+        'Save file name', ...
+        fileName);
+
+    % Check if the user cancelled
+    if isequal(file, 0) || isequal(dir, 0)
+        return
+    end
+
+    % Notify user that saving is ongoing
+    h = msgbox('Exporting to file...');
+
+    % Save to file
+    handles.lastSaveDir = dir;
+    save(fullfile(dir, file), ...
+        '-struct', 'handles', 'stackImg');
+
+    % Remove notification
+    try
+        delete(h);
+    catch
+    end
+
+    guidata(hObject, handles);
 end
-
-% Prepare name of file
-name = 'Current';
-if isfield(handles, 'expInfo')
-    name = strcat('Curr_', handles.expInfo.expNameExp);
-end
-
-% Check if there is a last dir and prepare a default location
-dir = handles.storePath;
-if isfield(handles, 'lastSaveDir')
-    dir = handles.lastSaveDir;
-end
-fileName = fullfile(dir, char(strcat(handles.machineId, name, '.mat')));
-
-% Suggest user and ask where to save
-[file, dir] = uiputfile('*.mat', ...
-    'Save file name', ...
-    fileName);
-
-% Check if the user cancelled
-if isequal(file, 0) || isequal(dir, 0)
-    return
-end
-
-% Notify user that saving is ongoing
-h = msgbox('Exporting to file...');
-
-% Save to file
-handles.lastSaveDir = dir;
-save(fullfile(dir, file), ...
-    '-struct', 'handles', 'stackImg');
-
-% Remove notification
-try
-    delete(h);
-catch
-end
-
-guidata(hObject, handles);
-
-
 
 % --------------------------------------------------------------------
 function mExp2WsOrig_Callback(hObject, ~, ~)
-% hObject    handle to mExp2WsOrig (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mExp2WsOrig (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-if ~isfield(handles, 'stackOrig')
-    msgbox('There is no stack to export!');
-    return
+    if ~isfield(handles, 'stackOrig')
+        msgbox('There is no stack to export!');
+        return
+    end
+
+    name = 'Original';
+    if isfield(handles, 'expInfo')
+        name = strcat('Orig_', handles.expInfo.expNameExp);
+
+        % Remove invalid variable name characters
+        name = strrep(name, '.', '_');
+    end
+
+    % Save to workspace
+    assignin('base', name, handles.stackOrig);
+
+    guidata(hObject, handles);
 end
-
-name = 'Original';
-if isfield(handles, 'expInfo')
-    name = strcat('Orig_', handles.expInfo.expNameExp);
-    
-    % Remove invalid variable name characters
-    name = strrep(name, '.', '_');
-end
-
-
-% Save to workspace
-assignin('base', name, handles.stackOrig);
-
-guidata(hObject, handles);
-
-
 
 % --------------------------------------------------------------------
 function mExp2WsCurr_Callback(hObject, ~, ~)
-% hObject    handle to mExp2WsCurr (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
+    % hObject    handle to mExp2WsCurr (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    handles = guidata(hObject);
 
-if ~isfield(handles, 'stackImg')
-    msgbox('There is no stack to export!');
-    return
+    if ~isfield(handles, 'stackImg')
+        msgbox('There is no stack to export!');
+        return
+    end
+
+    name = 'Current';
+    if isfield(handles, 'expInfo')
+        name = strcat('Curr_', handles.expInfo.expNameExp);
+
+        % Remove invalid variable name characters
+        name = strrep(name, '.', '_');
+    end
+
+    % Save to workspace
+    assignin('base', name, handles.stackImg);
+
+    guidata(hObject, handles);
 end
-
-name = 'Current';
-if isfield(handles, 'expInfo')
-    name = strcat('Curr_', handles.expInfo.expNameExp);
-    
-    % Remove invalid variable name characters
-    name = strrep(name, '.', '_');
-end
-
-
-% Save to workspace
-assignin('base', name, handles.stackImg);
-
-guidata(hObject, handles);
