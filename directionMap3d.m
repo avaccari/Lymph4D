@@ -41,14 +41,14 @@ function handles = directionMap3d(handles)
     % 3D model choices (defined in guide):
     % 5 - '3D_Difs-Adv.'
     switch method
-            % 3D diffusion-advection model
-        case 5
+        case 5 % 3D diffusion-advection model
             % Specify parameters to display
             nc = {'Diff Coeff', ...
                       'Vx', ...
                       'Vy', ...
                       'Vz', ...
-                  'Vmag'};
+                      'Vmag', ...
+                  'Peclet'};
 
             % Evaluate the advection-diffusion model
             coeff = modAdvecDiff3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
@@ -57,18 +57,25 @@ function handles = directionMap3d(handles)
             % Velocity magnitude
             vmag = sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2);
 
-            % Concatenate the parameters
-            coeff = cat(4, coeff, vmag);
+            % Peclet number = (velocity * length scale) / diffusion coeff
+            % The "length scale" is the element length in the flow direction
+            % We are using the 3D diagonal of the voxel (over-estimate Peclet number)
+            lengthScale = sqrt(ds(1) ^ 2 + ds(2) ^ 2 + ds(3) ^ 2);
 
-            % 3D diffusion-advection-source model
-        case 6
+            peclet = (vmag .* lengthScale) ./ coeff(:, :, :, 1);
+
+            % Concatenate the parameters
+            coeff = cat(4, coeff, vmag, peclet);
+
+        case 6 % 3D diffusion-advection-source model
             % Specify parameters to display
             nc = {'Diff Coeff', ...
                       'Vx', ...
                       'Vy', ...
                       'Vz', ...
                       'Vmag', ...
-                  'Source'};
+                      'Source', ...
+                  'Peclet'};
 
             % Evaluate the advection-diffusion-source model
             coeff = modAdvecDiffSrc3d(stk, be, en, ds, dt, useHood, hoodSiz, useSmooth);
@@ -77,11 +84,18 @@ function handles = directionMap3d(handles)
             % Velocity magnitude
             vmag = sqrt(coeff(:, :, :, 2) .^ 2 + coeff(:, :, :, 3) .^ 2 + coeff(:, :, :, 4) .^ 2);
 
-            % oncatenate the parameters
+            % Peclet number = (velocity * length scale) / diffusion coeff
+            % The "length scale" is the element length in the flow direction
+            % We are using the 3D diagonal of the voxel (over-estimate Peclet number)
+            lengthScale = sqrt(ds(1) ^ 2 + ds(2) ^ 2 + ds(3) ^ 2);
+            peclet = (vmag .* lengthScale) ./ coeff(:, :, :, 1);
+
+            % Concatenate the parameters
             coeff = cat(4, ...
                 coeff(:, :, :, 1:4), ...
                 vmag, ...
-                coeff(:, :, :, 5));
+                coeff(:, :, :, 5), ...
+                peclet);
 
     end
 
@@ -100,3 +114,4 @@ function handles = directionMap3d(handles)
 
     % Visualize map
     visualize3d(nc, coeff, stk);
+end
