@@ -13,7 +13,7 @@
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-function visualize3d(nc, coeff, stk)
+function visualize3d(nc, coeff, stk, handles)
     %% Default values for image controls
     imgZSlice = 1;
     imgChannel = 1;
@@ -52,7 +52,7 @@ function visualize3d(nc, coeff, stk)
     %% Configuration layout
     configGrid = uigridlayout(configLayout);
     configGrid.ColumnWidth = {'1x'};
-    configGrid.RowHeight = {15, 15, 40, '1x'};
+    configGrid.RowHeight = {15, 15, 40, 30, '1x'};
 
     % Smooth visualization
     smoothCB = uicheckbox(configGrid);
@@ -88,6 +88,46 @@ function visualize3d(nc, coeff, stk)
     function useBaseSliderUpdateImage(src, ~)
         baseQValue = src.Value / 100;
         updateImage();
+    end
+
+    % Add button to export the coefficients
+    exportButton = uibutton(configGrid);
+    exportButton.Text = 'Export coefficients';
+    exportButton.Layout.Row = 4;
+    exportButton.Layout.Column = 1;
+    exportButton.ButtonPushedFcn = @exportButtonUpdateImage;
+    function exportButtonUpdateImage(~, ~)
+        % Build unique file name
+        time = char(datetime('now', 'Format', 'yyyyMMddHHmmss'));
+        file = char(strcat(handles.machineId, time, '-ovrl.mat'));
+
+        % Get the file name
+        [fileName, pathName] = uiputfile('*.mat', ...
+            'Save file name for ovrl', ...
+            file);
+
+        % Check if the user cancelled
+        if isequal(fileName, 0) || isequal(pathName, 0)
+            return
+        end
+
+        % Notify user that saving is ongoing
+        h = msgbox('Saving ovrl file...');
+
+        % If the file exists, delete it
+        if exist(fullfile(pathName, fileName), 'file') == 2
+            delete(fullfile(pathName, fileName));
+        end
+
+        % Save the coefficients
+        coeffFile = fullfile(pathName, fileName);
+        save(coeffFile, 'coeff');
+
+        % Remove notification
+        try
+            delete(h);
+        catch
+        end
     end
 
     %% 3D layout
@@ -355,5 +395,5 @@ end
 %           'Vx', ...
 %           'Vy', ...
 %       'Vz'};
-% 
+%
 % visualize3da(nc, coeff, stk);

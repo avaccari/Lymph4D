@@ -113,5 +113,5 @@ function handles = directionMap3d(handles)
     end
 
     % Visualize map
-    visualize3d(nc, coeff, stk);
+    visualize3d(nc, coeff, stk, handles);
 end
